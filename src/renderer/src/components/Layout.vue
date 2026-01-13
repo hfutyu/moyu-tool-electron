@@ -19,7 +19,7 @@
     <el-container>
       <el-header class="soft-header">
         <div class="header-content">
-          <h2 class="soft-title">{{title}}</h2>
+          <h2 class="soft-title">{{ title }}</h2>
         </div>
       </el-header>
       <el-main class="soft-main">
@@ -33,11 +33,11 @@
 import { useRouter } from 'vue-router'
 import { computed, defineAsyncComponent, ref } from "vue";
 
-interface MenuItem {
+interface MenuItemData {
   index: string
   title: string
   icon?: any
-  children?: MenuItem[]
+  children?: MenuItemData[]
 }
 
 // 递归组件用于渲染菜单
@@ -47,14 +47,14 @@ const router = useRouter()
 const isCollapse = ref(false)
 
 // 从路由配置动态生成菜单项（支持多级）
-const menuItems = computed<MenuItem[]>(() => {
+const menuItems = computed<MenuItemData[]>(() => {
   return router.options.routes
     .filter(route => route.meta && route.meta.showInMenu !== false)
     .map(route => convertRouteToMenuItem(route))
 })
 
 // 递归转换路由为菜单项
-const convertRouteToMenuItem = (route: any): MenuItem => {
+const convertRouteToMenuItem = (route: any): MenuItemData => {
   return {
     index: route.name as string,
     title: route.meta?.title as string || route.name as string,

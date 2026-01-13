@@ -30,7 +30,10 @@ export default defineConfig(
       '@typescript-eslint/explicit-function-return-type': 'off',
       // 关闭属性顺序检查
       'vue/attributes-order': 'off',
-
+      // 关闭 any 类型检查
+      '@typescript-eslint/no-explicit-any': 'off',
+      // 关闭 prettier 检查
+      'prettier/prettier': 'off',
       'vue/require-default-prop': 'off',
       'vue/multi-word-component-names': 'off',
       'vue/block-lang': [

@@ -2,8 +2,8 @@
   <div class="home-container">
     <!-- 欢迎横幅 -->
     <div class="welcome-banner">
-      <h1 class="welcome-title">欢迎使用</h1>
-      <p class="welcome-subtitle">高效便捷的工具集</p>
+      <h1 class="welcome-title">这是一个不知道干什么的APP</h1>
+      <p class="welcome-subtitle">包含一些常用工具</p>
       <div class="feature-grid">
         <div class="feature-card" v-for="(feature, index) in features" :key="index">
           <div class="feature-icon">{{ feature.icon }}</div>
@@ -21,7 +21,7 @@
           class="access-item"
           v-for="(item, index) in quickAccess"
           :key="index"
-          @click="goToPage(item.path)"
+          @click="goToPage(item.name)"
         >
           <div class="access-icon">{{ item.icon }}</div>
           <span class="access-label">{{ item.label }}</span>
@@ -45,6 +45,8 @@
 // const router = useRouter();
 
 // 特性介绍
+import router from '@renderer/router'
+
 const features = [
   {
     icon: '✨',
@@ -65,10 +67,10 @@ const features = [
 
 // 快捷入口
 const quickAccess = [
-  { icon: '📝', label: 'Unicode转换', path: '/unicode' },
-  { icon: '📊', label: '数据统计', path: '/stats' },
-  { icon: '⚙️', label: '系统设置', path: '/settings' },
-  { icon: '❓', label: '帮助中心', path: '/help' }
+  { icon: '📝', label: 'Unicode转换', name: 'UnicodeConvert' },
+  // { icon: '📊', label: '数据统计', path: '/stats' },
+  // { icon: '⚙️', label: '系统设置', path: '/settings' },
+  // { icon: '❓', label: '帮助中心', path: '/help' }
 ];
 
 // 统计数据
@@ -80,8 +82,8 @@ const stats = [
 ];
 
 // 跳转到指定页面
-const goToPage = (_path: string) => {
-  // router.push(path);
+const goToPage = (name: string) => {
+  router.push({ name: name })
 };
 </script>
 
