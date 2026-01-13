@@ -1,17 +1,18 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-import icon from '../../resources/icon.png?asset'
+// import icon from '../../resources/icon.png?asset'
 
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 1200,
+    width: 1400,
     height: 800,
     show: true,
+    icon: join(__dirname, '../../resources/icon.ico'),
+    // ...(process.platform === 'linux' ? { icon } : {}),
     autoHideMenuBar: true,
-    title: '我的应用标题', // 添加这一行
-    ...(process.platform === 'linux' ? { icon } : {}),
+    title:"我的应用程序",
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
@@ -19,7 +20,6 @@ function createWindow(): void {
   })
 
   mainWindow.on('ready-to-show', () => {
-    mainWindow.setTitle('不知道是什么app')
     mainWindow.show()
   })
 
@@ -57,7 +57,7 @@ app.whenReady().then(() => {
   createWindow()
 
   app.on('activate', function () {
-    // On macOS it's common to re-create a window in the app when the
+    // On macOS, it's common to re-create a window in the app when the
     // dock icon is clicked and there are no other windows open.
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
