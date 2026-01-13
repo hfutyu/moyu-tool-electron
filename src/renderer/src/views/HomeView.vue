@@ -31,10 +31,10 @@
 
     <!-- 统计卡片 -->
     <div class="stats-section">
-      <div class="stat-card" v-for="(stat, index) in stats" :key="index">
-        <div class="stat-value">{{ stat.value }}</div>
-        <div class="stat-label">{{ stat.label }}</div>
-      </div>
+<!--      <div class="stat-card" v-for="(stat, index) in stats" :key="index">-->
+<!--        <div class="stat-value">{{ stat.value }}</div>-->
+<!--        <div class="stat-label">{{ stat.label }}</div>-->
+<!--      </div>-->
     </div>
   </div>
 </template>
@@ -50,18 +50,18 @@ import router from '@renderer/router'
 const features = [
   {
     icon: '✨',
-    title: '功能强大',
+    title: '工具',
     desc: '集成多种实用工具，满足日常开发需求'
   },
   {
     icon: '⚡',
-    title: '高效便捷',
+    title: '设计',
     desc: '简洁的操作界面，提升工作效率'
   },
   {
     icon: '🎨',
-    title: '精美界面',
-    desc: '现代化UI设计，提供愉悦的使用体验'
+    title: '未知',
+    desc: '暂时没想好'
   }
 ];
 
@@ -74,12 +74,12 @@ const quickAccess = [
 ];
 
 // 统计数据
-const stats = [
-  { value: '12+', label: '工具数量' },
-  { value: '24h', label: '在线服务' },
-  { value: '99.9%', label: '稳定运行' },
-  { value: '∞', label: '无限可能' }
-];
+// const stats = [
+  // { value: '12+', label: '工具数量' },
+  // { value: '24h', label: '在线服务' },
+  // { value: '99.9%', label: '稳定运行' },
+  // { value: '∞', label: '无限可能' }
+// ];
 
 // 跳转到指定页面
 const goToPage = (name: string) => {

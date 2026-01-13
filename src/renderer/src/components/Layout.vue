@@ -20,6 +20,14 @@
       <el-header class="soft-header">
         <div class="header-content">
           <h2 class="soft-title">{{ title }}</h2>
+          <el-button
+            @click="router.back()"
+            class="soft-back-button"
+            :icon="ArrowLeft"
+            size="default"
+          >
+            返回
+          </el-button>
         </div>
       </el-header>
       <el-main class="soft-main">
@@ -32,6 +40,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { computed, defineAsyncComponent, ref } from "vue";
+import { ArrowLeft } from '@element-plus/icons-vue';
 
 interface MenuItemData {
   index: string
@@ -44,7 +53,7 @@ interface MenuItemData {
 const MenuItem = defineAsyncComponent(() => import('./MenuItem.vue'))
 
 const router = useRouter()
-const isCollapse = ref(false)
+const isCollapse = ref(false) //左侧菜单展开
 
 // 从路由配置动态生成菜单项（支持多级）
 const menuItems = computed<MenuItemData[]>(() => {
@@ -80,6 +89,43 @@ const handleMenuSelect = (index: string) => {
 </script>
 
 <style scoped>
+
+/* 柔和返回按钮样式 */
+.soft-back-button {
+  background: linear-gradient(135deg, #a3bded, #6391cc);
+  border: none;
+  color: white;
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-weight: 500;
+  box-shadow: 0 4px 6px rgba(99, 145, 204, 0.2);
+  transition: all 0.3s ease;
+  height: auto;
+  display: flex;
+  align-items: center;
+}
+
+.soft-back-button:hover {
+  color: white;
+  background: linear-gradient(135deg, #93acec, #527dbf);
+  box-shadow: 0 6px 8px rgba(99, 145, 204, 0.3);
+  transform: translateY(-2px);
+}
+
+.soft-back-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(99, 145, 204, 0.2);
+}
+
+.soft-back-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(99, 145, 204, 0.3);
+}
+
+/* 隐藏默认图标间距调整 */
+.soft-back-button .el-icon {
+  margin-right: 6px;
+}
 .soft-clear-menu {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(10px);
