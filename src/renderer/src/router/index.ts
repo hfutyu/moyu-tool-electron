@@ -33,49 +33,8 @@ const routes = [
         }
       }
     ]
-  },
-  {
-    path: '/about',
-    name: 'About',
-    // component: AboutView,
-    meta: {
-      title: '关于',
-      showInMenu: false
-    },
-    children: [
-      {
-        path: 'child',
-        name: 'AboutChild',
-        // component: () => import('../views/AboutChildView.vue'),
-        meta: {
-          title: '关于子页面',
-          showInMenu: true
-        },
-        children: [
-          {
-            path: 'childc',
-            name: 'AboutChildChildc',
-            component: () => import('../views/AboutChildChildView.vue'),
-            meta: {
-              title: '关于子页面子页面',
-              showInMenu: true
-            }
-          }
-        ]
-      },
-      {
-        path: 'child2',
-        name: 'AboutChild2',
-        component: () => import('../views/AboutChild2View.vue'),
-        meta: {
-          title: '关于子页面2',
-          showInMenu: true
-        }
-      }
-    ]
   }
 ]
-
 
 const router = createRouter({
   history: createWebHashHistory(),

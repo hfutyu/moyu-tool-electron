@@ -1,5 +1,5 @@
 appId: com.my.app
-productName: 我的应用程序
+productName: 不知道是什么app
 directories:
   buildResources: build
 files:
@@ -13,6 +13,7 @@ asarUnpack:
   - resources/**
 win:
   executableName: 不知道是什么app
+#  icon: build/favicon.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}

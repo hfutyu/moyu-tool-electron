@@ -24,6 +24,13 @@ export default defineConfig(
   {
     files: ['**/*.{ts,mts,tsx,vue}'],
     rules: {
+      // 关闭未使用变量检查
+      '@typescript-eslint/no-unused-vars': 'off',
+      // 关闭函数返回类型显式声明检查
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      // 关闭属性顺序检查
+      'vue/attributes-order': 'off',
+
       'vue/require-default-prop': 'off',
       'vue/multi-word-component-names': 'off',
       'vue/block-lang': [
