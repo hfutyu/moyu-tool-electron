@@ -28,19 +28,25 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-
 // 用于跟踪窗口是否最大化
 const isMaximized = ref(false)
 
-const windowMinimize = () => {}
-
-const windowMaximize = () => {
-  // 这里应该与实际的窗口控制逻辑连接
-  // 暂时切换状态用于演示
-  isMaximized.value = !isMaximized.value
+const windowMinimize = async () => {
+  if (window && (window as any).electron) {
+    (window as any).electron.ipcRenderer.invoke('window-minimize')
+  }
+}
+const windowMaximize = async () => {
+  if (window && (window as any).electron) {
+    isMaximized.value = await (window as any).electron.ipcRenderer.invoke('window-maximize')
+  }
 }
 
-const windowClose = () => {}
+const windowClose = () => {
+  if (window && (window as any).electron) {
+    (window as any).electron.ipcRenderer.invoke('window-close')
+  }
+}
 </script>
 
 <style scoped>
