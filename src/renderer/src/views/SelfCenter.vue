@@ -18,12 +18,12 @@
           </div>
         </div>
         <div class="edit-profile">
-          <el-button type="primary" size="default">编辑资料</el-button>
+          <el-button type="primary" size="default" @click="openUserDia">编辑资料</el-button>
         </div>
       </div>
 
       <!-- 功能卡片区域 -->
-      <div class="features-grid">
+      <div class="features-grid" v-if="false">
         <!-- 个人资料 -->
         <div class="feature-card">
           <div class="card-icon">
@@ -90,6 +90,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { ElMessageBox, ElMessage } from 'element-plus'
 
 // 模拟用户信息
 interface UserInfo {
@@ -104,9 +105,67 @@ const userInfo = ref<UserInfo>({
   avatar: ''
 })
 
-onMounted(() => {
+// 从本地存储加载用户数据
+const loadUserData = () => {
+  try {
+    const storedData = localStorage.getItem('userData')
+    if (storedData) {
+      const parsedData = JSON.parse(storedData)
+      userInfo.value = {
+        ...userInfo.value,
+        ...parsedData
+      }
+    }
+  } catch (error) {
+    console.error('加载用户数据失败:', error)
+  }
+}
 
+// 保存用户数据到本地存储
+const saveUserData = () => {
+  try {
+    localStorage.setItem('userData', JSON.stringify(userInfo.value))
+    ElMessage.success('用户信息已保存')
+  } catch (error) {
+    console.error('保存用户数据失败:', error)
+    ElMessage.error('保存失败')
+  }
+}
+
+// 编辑资料对话框
+const openUserDia = async () => {
+  try {
+    const { value } = await ElMessageBox.prompt(
+      '请输入您的信息',
+      '编辑资料',
+      {
+        inputValue: `${userInfo.value.name},${userInfo.value.email}`,
+        inputPattern: /.+/,
+        inputPlaceholder: '姓名,邮箱',
+        confirmButtonText: '保存',
+        cancelButtonText: '取消'
+      }
+    )
+
+    const [name, email] = value.split(',')
+    if (name && email) {
+      userInfo.value = {
+        ...userInfo.value,
+        name: name.trim(),
+        email: email.trim()
+      }
+      saveUserData()
+    }
+  } catch (error) {
+    // 用户取消操作
+    console.log('用户取消编辑')
+  }
+}
+
+onMounted(() => {
+  loadUserData()
 })
+
 </script>
 
 <style scoped>

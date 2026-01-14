@@ -48,10 +48,13 @@ app.whenReady().then(() => {
     }
     return false
   })
-
   ipcMain.handle('window-close', (event) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (win) win.close()
+  })
+  mainWindow.on('closed', () => {
+    // 清理相关资源
+    mainWindow = null
   })
 })
 
