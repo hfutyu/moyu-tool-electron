@@ -1,6 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-
+import { HomeFilled, Menu } from '@element-plus/icons-vue' // 如果使用Element Plus图标
 const routes = [
   {
     path: '/',
@@ -12,7 +12,8 @@ const routes = [
     component: HomeView,
     meta: {
       title: '首页',
-      showInMenu: true
+      showInMenu: true,
+      icon: HomeFilled,
     }
   },
   {
@@ -20,7 +21,8 @@ const routes = [
     name: 'Tool',
     meta: {
       title: '工具',
-      showInMenu: true
+      showInMenu: true,
+      icon: Menu
     },
     children: [
       {
@@ -29,6 +31,24 @@ const routes = [
         component: () => import('../views/UnicodeConvert.vue'),
         meta: {
           title: 'Unicode转换器',
+          showInMenu: true
+        }
+      },
+      {
+        path: 'json',
+        name: 'JsonConvert',
+        component: () => import('../views/JSONConvert.vue'),
+        meta: {
+          title: 'JSON解析',
+          showInMenu: true
+        }
+      },
+      {
+        path: 'time',
+        name: 'TimeConvert',
+        component: () => import('../views/TimeConvert.vue'),
+        meta: {
+          title: '时间戳工具',
           showInMenu: true
         }
       }
