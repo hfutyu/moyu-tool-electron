@@ -6,14 +6,18 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 1400,
+    width: 1200,
     height: 800,
     show: true,
     icon: join(__dirname, '../../resources/icon.ico'),
     // ...(process.platform === 'linux' ? { icon } : {}),
     autoHideMenuBar: true,
     title:"我的应用程序",
+    titleBarStyle: 'hidden', // 或 'customButtonsOnHover' (macOS)
+    roundedCorners: true,  // 启用圆角
+    transparent: true,
     webPreferences: {
+      webviewTag: true,
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
     }

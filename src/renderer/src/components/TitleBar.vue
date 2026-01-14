@@ -1,0 +1,127 @@
+<template>
+  <el-header class="title-bar">
+    <div class="title-content">
+      <span class="app-title">MyApp</span>
+    </div>
+    <div class="window-controls">
+      <button class="control-btn minimize-btn" @click="windowMinimize">
+        <svg class="icon" viewBox="0 0 24 24" width="20" height="20">
+          <path fill="currentColor" d="M20 14H4v-4h16v4z"/>
+        </svg>
+      </button>
+      <button class="control-btn maximize-btn" @click="windowMaximize">
+        <svg v-if="!isMaximized" class="icon" viewBox="0 0 24 24" width="20" height="20">
+          <path fill="currentColor" d="M4 4h16v16H4V4zm2 2v12h12V6H6z"/>
+        </svg>
+        <svg v-else class="icon" viewBox="0 0 24 24" width="20" height="20">
+          <path fill="currentColor" d="M4 4h12v12H4V4zm2 2v8h8V6H6z"/>
+        </svg>
+      </button>
+      <button class="control-btn close-btn" @click="windowClose">
+        <svg class="icon" viewBox="0 0 24 24" width="20" height="20">
+          <path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+        </svg>
+      </button>
+    </div>
+  </el-header>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+
+// 用于跟踪窗口是否最大化
+const isMaximized = ref(false)
+
+const windowMinimize = () => {}
+
+const windowMaximize = () => {
+  // 这里应该与实际的窗口控制逻辑连接
+  // 暂时切换状态用于演示
+  isMaximized.value = !isMaximized.value
+}
+
+const windowClose = () => {}
+</script>
+
+<style scoped>
+.title-bar {
+  height: 50px;
+  background: linear-gradient(135deg, #4e6073 0%, #91afcc 100%);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 10px;
+  color: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  user-select: none;
+  -webkit-app-region: drag;
+  -webkit-user-select: none;
+}
+
+.title-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.app-title {
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+}
+
+.window-controls {
+  -webkit-app-region: no-drag;
+  display: flex;
+  height: 30px;
+  margin-right: 2px;
+}
+
+.control-btn {
+  width: 46px;
+  height: 30px;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  -webkit-app-region: no-drag;
+}
+
+.control-btn:hover .icon {
+  opacity: 1;
+}
+
+.minimize-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.maximize-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.close-btn:hover {
+  background-color: #ff5f56;
+}
+
+.close-btn:active {
+  background-color: #e0443e;
+}
+
+.icon {
+  color: white;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.close-btn .icon {
+  opacity: 0.9;
+}
+
+.close-btn:hover .icon {
+  fill: white;
+}
+</style>

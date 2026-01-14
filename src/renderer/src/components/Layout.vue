@@ -126,12 +126,20 @@ const handleMenuSelect = (index: string) => {
 .soft-back-button .el-icon {
   margin-right: 6px;
 }
+.soft-main {
+  background: linear-gradient(135deg, #f7fafc, #edf2f7);
+}
+
+.layout-container {
+  overflow: hidden;
+  background: linear-gradient(135deg, #e6fffa, #f0fff4);
+}
 .soft-clear-menu {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(10px);
   border-right: 1px solid rgba(220, 220, 220, 0.5);
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
-  height: calc(100vh - 20px);
+  height: 100%;
   overflow: hidden;
 }
 
@@ -180,17 +188,6 @@ const handleMenuSelect = (index: string) => {
   color: #2d3748;
   font-size: 1.4rem;
   font-weight: 500;
-}
-
-.soft-main {
-  background: linear-gradient(135deg, #f7fafc, #edf2f7);
-  min-height: calc(100vh - 60px);
-}
-
-.layout-container {
-  overflow: hidden;
-  height: calc(100vh - 20px);
-  background: linear-gradient(135deg, #e6fffa, #f0fff4);
 }
 
 /* 圆润设计 */
