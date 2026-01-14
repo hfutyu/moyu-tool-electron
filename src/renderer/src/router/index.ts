@@ -1,6 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import { HomeFilled, Menu } from '@element-plus/icons-vue' // 如果使用Element Plus图标
+import { HomeFilled, Menu, User } from '@element-plus/icons-vue' // 如果使用Element Plus图标
 const routes = [
   {
     path: '/',
@@ -53,7 +53,17 @@ const routes = [
         }
       }
     ]
-  }
+  },
+  {
+    path: '/self',
+    name: 'self',
+    component: () => import('../views/SelfCenter.vue'),
+    meta: {
+      title: '个人中心',
+      showInMenu: true,
+      icon: User,
+    }
+  },
 ]
 
 const router = createRouter({

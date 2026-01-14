@@ -53,7 +53,7 @@ const windowClose = () => {
 <style scoped>
 .title-bar {
   height: 50px;
-  background: linear-gradient(135deg, #4e6073 0%, #91afcc 100%);
+  background: linear-gradient(135deg, #2c3e50 0%, #4a6491 100%);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -71,11 +71,18 @@ const windowClose = () => {
   flex: 1;
 }
 
+.logo {
+  width: 24px;
+  height: 24px;
+  margin-right: 8px;
+  border-radius: 3px;
+}
+
 .app-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   letter-spacing: 0.5px;
-  margin-left: 8px;
+  margin-left: 4px;
 }
 
 .window-controls {
@@ -96,6 +103,7 @@ const windowClose = () => {
   cursor: pointer;
   transition: all 0.2s ease;
   -webkit-app-region: no-drag;
+  border-radius: 4px;
 }
 
 .control-btn:hover .icon {
@@ -103,25 +111,26 @@ const windowClose = () => {
 }
 
 .minimize-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
 .maximize-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
 .close-btn:hover {
-  background-color: #ff5f56;
+  background-color: #e8104c;
 }
 
 .close-btn:active {
-  background-color: #e0443e;
+  background-color: #c20f41;
 }
 
 .icon {
   color: white;
-  opacity: 0.8;
+  opacity: 0.85;
   transition: opacity 0.2s ease;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
 }
 
 .close-btn .icon {
