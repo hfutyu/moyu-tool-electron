@@ -17,6 +17,6 @@ body {
 .app-container {
   height: 100vh;
   overflow: hidden;
-  border-radius: 30px;
+  position: relative;
 }
 </style>

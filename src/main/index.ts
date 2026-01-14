@@ -15,7 +15,7 @@ function createWindow(): void {
     title:"我的应用程序",
     titleBarStyle: 'hidden', // 或 'customButtonsOnHover' (macOS)
     roundedCorners: true,  // 启用圆角
-    transparent: true,
+    transparent: false,
     webPreferences: {
       webviewTag: true,
       preload: join(__dirname, '../preload/index.js'),

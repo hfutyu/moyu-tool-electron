@@ -1,6 +1,7 @@
 <template>
   <el-header class="title-bar">
     <div class="title-content">
+      <img src="../assets/icon.ico" alt="Logo" class="logo"/>
       <span class="app-title">MyApp</span>
     </div>
     <div class="window-controls">
