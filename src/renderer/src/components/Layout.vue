@@ -92,7 +92,7 @@ const handleMenuSelect = (index: string) => {
 
 /* 柔和返回按钮样式 */
 .soft-back-button {
-  background: linear-gradient(135deg, #a3bded, #6391cc);
+  background: linear-gradient(135deg, #a5bff1, #6694cf);
   border: none;
   color: white;
   border-radius: 12px;

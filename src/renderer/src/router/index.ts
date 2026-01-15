@@ -23,17 +23,7 @@ const routes = [
     component: () => import('../views/ApiFox.vue'),
     meta: {
       title: 'API测试工具',
-      showInMenu: true,
-      icon: Document,
-    }
-  },
-  {
-    path: '/file',
-    name: 'File',
-    component: () => import('../views/ApiFox.vue'),
-    meta: {
-      title: '本地文件',
-      showInMenu: true,
+      showInMenu: false,
       icon: Document,
     }
   },
@@ -72,7 +62,16 @@ const routes = [
           title: '时间戳工具',
           showInMenu: true
         }
-      }
+      },
+      {
+        path: '/number',
+        name: 'NumberConvert',
+        component: () => import('../views/tool/NumberConvert.vue'),
+        meta: {
+          title: '进制转换',
+          showInMenu: true,
+         }
+      },
     ]
   },
   {
