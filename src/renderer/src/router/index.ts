@@ -1,6 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import { HomeFilled, Menu, User, Document } from '@element-plus/icons-vue' // 如果使用Element Plus图标
+import { HomeFilled, Menu, User, Document } from '@element-plus/icons-vue'
+import { nextTick } from 'vue' // 如果使用Element Plus图标
 const routes = [
   {
     path: '/',
@@ -27,6 +28,16 @@ const routes = [
     }
   },
   {
+    path: '/file',
+    name: 'File',
+    component: () => import('../views/ApiFox.vue'),
+    meta: {
+      title: '本地文件',
+      showInMenu: true,
+      icon: Document,
+    }
+  },
+  {
     path: '/tool',
     name: 'Tool',
     meta: {
@@ -38,7 +49,7 @@ const routes = [
       {
         path: 'unicode',
         name: 'UnicodeConvert',
-        component: () => import('../views/UnicodeConvert.vue'),
+        component: () => import('../views/tool/UnicodeConvert.vue'),
         meta: {
           title: 'Unicode转换器',
           showInMenu: true
@@ -47,7 +58,7 @@ const routes = [
       {
         path: 'json',
         name: 'JsonConvert',
-        component: () => import('../views/JSONConvert.vue'),
+        component: () => import('../views/tool/JSONConvert.vue'),
         meta: {
           title: 'JSON解析',
           showInMenu: true
@@ -56,7 +67,7 @@ const routes = [
       {
         path: 'time',
         name: 'TimeConvert',
-        component: () => import('../views/TimeConvert.vue'),
+        component: () => import('../views/tool/TimeConvert.vue'),
         meta: {
           title: '时间戳工具',
           showInMenu: true
@@ -79,6 +90,14 @@ const routes = [
 const router = createRouter({
   history: createWebHashHistory(),
   routes
+})
+router.afterEach(() => {
+  nextTick(() => {
+    const mainElement = document.querySelector('.soft-main')
+    if (mainElement) {
+      mainElement.scrollTop = 0
+    }
+  })
 })
 
 export default router
