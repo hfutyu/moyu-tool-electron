@@ -53,7 +53,7 @@ app.whenReady().then(() => {
     if (win) win.close()
   })
   mainWindow.on('closed', () => {
-    // 清理相关资源
+    // 清理相关资源a
     mainWindow = null
   })
 })
