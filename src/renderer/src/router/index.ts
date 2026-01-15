@@ -1,6 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import { HomeFilled, Menu, User } from '@element-plus/icons-vue' // 如果使用Element Plus图标
+import { HomeFilled, Menu, User, Document } from '@element-plus/icons-vue' // 如果使用Element Plus图标
 const routes = [
   {
     path: '/',
@@ -14,6 +14,16 @@ const routes = [
       title: '首页',
       showInMenu: true,
       icon: HomeFilled,
+    }
+  },
+  {
+    path: '/api',
+    name: 'API',
+    component: () => import('../views/ApiFox.vue'),
+    meta: {
+      title: 'API测试工具',
+      showInMenu: true,
+      icon: Document,
     }
   },
   {

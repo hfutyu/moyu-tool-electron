@@ -82,6 +82,7 @@ function createMainWindow(): BrowserWindow {
     roundedCorners: true,  // 启用圆角
     transparent: false,
     webPreferences: {
+      webSecurity: false,
       webviewTag: true,
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false
