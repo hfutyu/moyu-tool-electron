@@ -120,7 +120,7 @@ const addRandomTile = () => {
 
 // 获取空格子
 const getEmptyCells = () => {
-  const cells = [];
+  const cells:any = [];
   for (let row = 0; row < 4; row++) {
     for (let col = 0; col < 4; col++) {
       if (!tiles.value.some(tile => tile.row === row && tile.col === col)) {
@@ -189,7 +189,7 @@ const moveUp = () => {
 const moveDown = () => {
   for (let col = 0; col < 4; col++) {
     const column = tiles.value.filter(tile => tile.col === col).sort((a, b) => b.row - a.row);
-    const processedColumn = processLine([...column], true);
+    const processedColumn = processLine([...column]);
     updateTilesPosition(processedColumn, col, 'row', true);
   }
 };
@@ -207,13 +207,13 @@ const moveLeft = () => {
 const moveRight = () => {
   for (let row = 0; row < 4; row++) {
     const rowTiles = tiles.value.filter(tile => tile.row === row).sort((a, b) => b.col - a.col);
-    const processedRow = processLine([...rowTiles], true);
-    updateTilesPosition(processedRow, row, 'col', true);
+    const processedRow = processLine([...rowTiles]);
+    updateTilesPosition(processedRow, row, 'col');
   }
 };
 
 // 处理一行/列的移动
-const processLine = (line: Tile[], reverse = false): Tile[] => {
+const processLine = (line: Tile[]): Tile[] => {
   // 移除空位
   const nonEmpty = line.filter(tile => tile.value !== 0);
 
