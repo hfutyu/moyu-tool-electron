@@ -85,6 +85,44 @@ const routes = [
     ]
   },
   {
+    path: '/game',
+    name: 'Game',
+    meta: {
+      title: '休闲',
+      showInMenu: true,
+      icon: Menu
+    },
+    children: [
+      {
+        path: '2048',
+        name: '2048',
+        component: () => import('../views/game/2048.vue'),
+        meta: {
+          title: '2048',
+          showInMenu: true
+        }
+      },
+      {
+        path: 'plane',
+        name: 'PaperPlane',
+        component: () => import('../views/game/PaperPlane.vue'),
+        meta: {
+          title: '纸飞机',
+          showInMenu: true
+        }
+      },
+      {
+        path: 'Gomoku',
+        name: 'Gomoku',
+        component: () => import('../views/game/Gomoku.vue'),
+        meta: {
+          title: '五子棋',
+          showInMenu: true
+        }
+      },
+    ]
+  },
+  {
     path: '/self',
     name: 'self',
     component: () => import('../views/SelfCenter.vue'),

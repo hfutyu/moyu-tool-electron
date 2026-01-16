@@ -166,7 +166,9 @@ import { ref, computed } from 'vue'
 import { callApi } from '@renderer/api/api'
 
 // 基础URL和路径
-const baseUrl = ref('https://ebike.ievcloud.com/admin-api')
+// const baseUrl = ref('https://ebike.ievcloud.com/admin-api')
+const baseUrl = ref('https://127.0.0.1:6666')
+// const path = ref('/ep/overview/day/getBatteryMileageStats?groupType=1')
 const path = ref('/ep/overview/day/getBatteryMileageStats?groupType=1')
 
 // 请求方法
