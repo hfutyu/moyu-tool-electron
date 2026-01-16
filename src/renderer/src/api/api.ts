@@ -11,3 +11,39 @@ export const test1 = (params: any) => {
     params: params
   })
 }
+export const test2 = (params: any) => {
+  return request({
+    method: 'GET',
+    url: '/device/location/track',
+    params: params
+  })
+}
+export const test3 = (params: any) => {
+  return request({
+    method: 'GET',
+    url: '/device/battery-gps/trace',
+    params: params
+  })
+}
+// 通用API请求函数
+export const callApi = (
+  method: string,
+  url: string,
+  data?: any,
+  headers?: Record<string, string>,
+  params?: any
+) => {
+  const config: any = {
+    method,
+    url,
+    headers: headers || {},
+  }
+
+  if (method.toLowerCase() === 'get' || method.toLowerCase() === 'delete') {
+    config.params = params
+  } else {
+    config.data = data
+  }
+
+  return request(config)
+}

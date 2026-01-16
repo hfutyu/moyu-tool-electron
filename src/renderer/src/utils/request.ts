@@ -2,7 +2,8 @@ import axios from 'axios'
 
 const request = axios.create({
   // baseURL: import.meta.env.VITE_APP_BASE_API,
-  baseURL: 'http://localhost:48080/admin-api',
+  // baseURL: 'http://localhost:48080/admin-api',
+  baseURL: 'https://ebike.ievcloud.com/admin-api',
   timeout: 5000
 })
 
@@ -10,10 +11,10 @@ const request = axios.create({
 request.interceptors.request.use(
   config => {
     let token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token')
-    token = '45f7cfd6700f491e8782d68ae43bad17'
+    token = '299d8d6ed59c42a3a2ebd0bd283b9722'
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
-      config.headers['tenant-id'] = 2395
+      config.headers['tenant-id'] = 82
     }
     return config
   },

@@ -18,12 +18,22 @@ const routes = [
     }
   },
   {
+    path: '/test',
+    name: 'test',
+    component: () => import('../views/test.vue'),
+    meta: {
+      title: 'test',
+      showInMenu: false,
+      icon: HomeFilled,
+    }
+  },
+  {
     path: '/api',
     name: 'API',
     component: () => import('../views/ApiFox.vue'),
     meta: {
-      title: 'API测试工具',
-      showInMenu: false,
+      title: 'API调试',
+      showInMenu: true,
       icon: Document,
     }
   },
