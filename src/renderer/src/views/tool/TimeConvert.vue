@@ -139,6 +139,7 @@ interface HistoryItem {
 const history = ref<HistoryItem[]>([]);
 
 // 防抖定时器
+// eslint-disable-next-line no-undef
 let debounceTimer: NodeJS.Timeout | null = null;
 
 // 时间格式转换
