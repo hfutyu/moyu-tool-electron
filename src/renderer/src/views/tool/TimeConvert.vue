@@ -87,7 +87,9 @@
 
       <!-- 转换历史 -->
       <div class="history-section">
-        <h3>🕒 转换历史</h3>
+        <h3>🕒 转换历史
+          <el-button style="float: right;" @click="clearHistory" size="small" type="danger" plain>清空历史</el-button>
+        </h3>
         <div class="history-list">
           <div
             v-for="(item, index) in history"
@@ -308,9 +310,21 @@ const addToHistory = (type: string, input: string, result: string) => {
   if (history.value.length > 10) {
     history.value.pop();
   }
+  // 保存到本地存储
+  localStorage.setItem('timeHistory', JSON.stringify(history.value))
 };
+const clearHistory = () => {
+  history.value = [];
+  localStorage.removeItem('timeHistory');
+}
 
-// 加载历史记录
+if (localStorage.getItem('timeHistory')) {
+  try {
+    history.value = JSON.parse(localStorage.getItem('timeHistory') || '[]')
+  } catch (e) {
+    console.error('加载历史记录失败:', e)
+  }
+}
 // 加载历史记录
 const loadHistory = (item: HistoryItem) => {
   // 根据历史记录类型加载到相应字段

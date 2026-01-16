@@ -70,7 +70,9 @@
 
       <!-- 解析历史 -->
       <div class="history-section">
-        <h3>🕒 解析历史</h3>
+        <h3>🕒 解析历史
+          <el-button style="float: right;" @click="clearHistory" size="small" type="danger" plain>清空历史</el-button>
+        </h3>
         <div class="history-list">
           <div
             v-for="(item, index) in history"
@@ -238,8 +240,17 @@ const addToHistory = (input: string, output: string) => {
   if (history.value.length > 10) {
     history.value.pop();
   }
+  // 保存到本地存储
+  localStorage.setItem('jsonHistory', JSON.stringify(history.value))
 };
-
+// 组件挂载时加载历史记录
+if (localStorage.getItem('jsonHistory')) {
+  try {
+    history.value = JSON.parse(localStorage.getItem('jsonHistory') || '[]')
+  } catch (e) {
+    console.error('加载历史记录失败:', e)
+  }
+}
 // 加载历史记录
 const loadHistory = (item: { input: string; output: string }) => {
   inputJSON.value = item.input;
@@ -286,6 +297,12 @@ const copyOutput = async () => {
     ElMessage.error('复制失败');
   }
 };
+
+// 清空历史
+const clearHistory = () => {
+  history.value = [];
+  localStorage.removeItem('jsonHistory');
+}
 </script>
 
 <style scoped>
@@ -395,6 +412,7 @@ const copyOutput = async () => {
   margin-top: 0;
   color: #2c3e50;
   font-size: 1.3rem;
+  font-weight: 600;
 }
 
 .history-list {

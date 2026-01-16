@@ -58,7 +58,7 @@ const routes = [
       {
         path: 'json',
         name: 'JsonConvert',
-        component: () => import('../views/tool/JSONConvert.vue'),
+        component: () => import('../views/tool/JsonConvert.vue'),
         meta: {
           title: 'JSON解析',
           showInMenu: true

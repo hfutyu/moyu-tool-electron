@@ -11,11 +11,11 @@
         <div class="input-group">
           <label>请求方法</label>
           <el-select v-model="method" placeholder="选择请求方法" class="method-select">
-            <el-option label="GET" value="GET"></el-option>
-            <el-option label="POST" value="POST"></el-option>
-            <el-option label="PUT" value="PUT"></el-option>
-            <el-option label="DELETE" value="DELETE"></el-option>
-            <el-option label="PATCH" value="PATCH"></el-option>
+            <el-option label="GET" value="GET" style="color: rgb(0, 179, 109)"></el-option>
+            <el-option label="POST" value="POST" style="color: rgb(236, 112, 77)"></el-option>
+            <el-option label="PUT" value="PUT" style="color: rgb(81, 134, 247)"></el-option>
+            <el-option label="DELETE" value="DELETE" style="color: rgb(255, 82, 82)"></el-option>
+            <el-option label="PATCH" value="PATCH" style="color: rgb(241, 67, 186)"></el-option>
           </el-select>
         </div>
 

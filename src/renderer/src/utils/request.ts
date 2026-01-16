@@ -4,18 +4,18 @@ const request = axios.create({
   // baseURL: import.meta.env.VITE_APP_BASE_API,
   // baseURL: 'http://localhost:48080/admin-api',
   baseURL: 'https://ebike.ievcloud.com/admin-api',
-  timeout: 5000
+  timeout: 5000000
 })
 
 // 请求拦截器
 request.interceptors.request.use(
   config => {
-    let token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token')
-    token = '299d8d6ed59c42a3a2ebd0bd283b9722'
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-      config.headers['tenant-id'] = 82
-    }
+    // let token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token')
+    // token = '299d8d6ed59c42a3a2ebd0bd283b9722'
+    // if (token) {
+    //   config.headers.Authorization = `Bearer ${token}`
+    //   config.headers['tenant-id'] = 82
+    // }
     return config
   },
   error => {
