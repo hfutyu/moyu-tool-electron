@@ -78,9 +78,9 @@ function createMainWindow(): BrowserWindow {
     // ...(process.platform === 'linux' ? { icon } : {}),
     autoHideMenuBar: true,
     title:"我的应用程序",
-    titleBarStyle: 'hidden', // 或 'customButtonsOnHover' (macOS)
-    roundedCorners: true,  // 启用圆角
-    transparent: false,
+    titleBarStyle: 'hidden', // 或 'customButtonsOnHover' (macOS) 决定默认上边框是否展示
+    // roundedCorners: true,  // 启用圆角
+    // transparent: false,
     webPreferences: {
       webSecurity: false,
       webviewTag: true,

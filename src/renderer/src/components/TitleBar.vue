@@ -2,7 +2,7 @@
   <el-header class="title-bar">
     <div class="title-content">
       <img src="../assets/icon.ico" alt="Logo" class="logo"/>
-      <span class="app-title">MyApp</span>
+      <span class="app-title">猫鱼工具</span>
     </div>
     <div class="window-controls">
       <button class="control-btn minimize-btn" @click="windowMinimize">

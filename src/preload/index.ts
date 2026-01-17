@@ -9,7 +9,7 @@ const api = {}
 // just add to the DOM global.
 if (process.contextIsolated) {
   try {
-    contextBridge.exposeInMainWorld('electron', electronAPI)
+    contextBridge.exposeInMainWorld('electron', electronAPI)// 将electronAPI暴露给渲染进程 window.electron.ipcRenderer.invoke('window-maximize')
     contextBridge.exposeInMainWorld('api', api)
   } catch (error) {
     console.error(error)
