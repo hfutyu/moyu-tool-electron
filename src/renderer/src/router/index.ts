@@ -18,16 +18,6 @@ const routes = [
     }
   },
   {
-    path: '/ai',
-    name: 'ai',
-    component: () => import('../views/AITool.vue'),
-    meta: {
-      title: '大模型对话',
-      showInMenu: true,
-      icon: HomeFilled,
-    }
-  },
-  {
     path: '/api',
     name: 'API',
     component: () => import('../views/ApiFox.vue'),
@@ -35,6 +25,16 @@ const routes = [
       title: 'API调试',
       showInMenu: true,
       icon: Document,
+    }
+  },
+  {
+    path: '/ai',
+    name: 'ai',
+    component: () => import('../views/AITool.vue'),
+    meta: {
+      title: '大模型对话',
+      showInMenu: true,
+      icon: HomeFilled,
     }
   },
   {
