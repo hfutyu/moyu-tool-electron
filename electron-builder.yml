@@ -1,5 +1,5 @@
 appId: com.my.app
-productName: 不知道是什么app
+productName: 猫鱼工具箱
 directories:
   buildResources: build
 files:
@@ -12,7 +12,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: 不知道是什么app
+  executableName: 猫鱼工具箱
 #  icon: build/favicon.ico
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
