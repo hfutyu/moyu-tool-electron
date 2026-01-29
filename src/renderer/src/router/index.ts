@@ -18,12 +18,12 @@ const routes = [
     }
   },
   {
-    path: '/test',
-    name: 'test',
-    component: () => import('../views/test.vue'),
+    path: '/ai',
+    name: 'ai',
+    component: () => import('../views/AITool.vue'),
     meta: {
-      title: 'test',
-      showInMenu: false,
+      title: 'AI对话',
+      showInMenu: true,
       icon: HomeFilled,
     }
   },

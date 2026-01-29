@@ -169,7 +169,7 @@ import { callApi } from '@renderer/api/api'
 // const baseUrl = ref('https://ebike.ievcloud.com/admin-api')
 const baseUrl = ref('https://127.0.0.1:6666')
 // const path = ref('/ep/overview/day/getBatteryMileageStats?groupType=1')
-const path = ref('/ep/overview/day/getBatteryMileageStats?groupType=1')
+const path = ref('')
 
 // 请求方法
 const method = ref('GET')
@@ -177,7 +177,7 @@ const method = ref('GET')
 // 请求头
 const headers = ref([
   { key: 'Content-Type', value: 'application/json' },
-  { key: 'Authorization', value: 'Bearer 299d8d6ed59c42a3a2ebd0bd283b9722' },
+  { key: 'Authorization', value: 'Bearer tokenstr' },
 ])
 
 // 请求数据
