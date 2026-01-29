@@ -2,7 +2,7 @@
   <div class="chat-container">
     <!-- 对话头部 -->
     <div class="chat-header">
-      <h2>AI 对话助手</h2>
+      <h2>大模型对话助手</h2>
       <div class="api-config" v-if="showConfig">
         <el-form :model="configForm" label-width="100px" size="small">
           <el-form-item label="API地址:">
@@ -54,6 +54,7 @@
         </div>
         <div class="message-content">
           <div class="typing-indicator">
+            <span></span>
             <span></span>
             <span></span>
           </div>
@@ -221,98 +222,146 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
   padding: 20px;
-  background-color: #f5f7fa;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4edf5 100%);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 .chat-header {
-  background: white;
-  padding: 15px 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 20px 25px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
   margin-bottom: 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .chat-header h2 {
   margin: 0;
-  color: #333;
+  color: #2c3e50;
+  font-weight: 600;
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, #3498db, #2c3e50);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .config-btn {
   margin-left: auto;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  transition: all 0.3s ease;
+}
+
+.config-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.4);
 }
 
 .api-config {
   flex-grow: 1;
   margin-right: 20px;
+  padding: 15px;
+  background: rgba(248, 249, 250, 0.8);
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
 }
 
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  padding: 25px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
   margin-bottom: 20px;
   display: flex;
   flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .message {
   display: flex;
-  margin-bottom: 15px;
-  animation: fadeIn 0.3s ease-in;
+  margin-bottom: 20px;
+  animation: fadeIn 0.4s ease-out;
+  max-width: 85%;
+  transition: transform 0.2s ease;
+}
+
+.message:hover {
+  transform: translateY(-2px);
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .message.user {
   align-self: flex-end;
+  margin-left: auto;
 }
 
 .message.user .message-content {
-  background-color: #409eff;
+  background: linear-gradient(135deg, #3498db, #2980b9);
   color: white;
-  border-radius: 18px 4px 18px 18px;
+  border-radius: 20px 4px 20px 20px;
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
 }
 
 .message.assistant .message-content {
-  background-color: #f0f2f5;
-  border-radius: 4px 18px 18px 18px;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 4px 20px 20px 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  color: #2c3e50;
 }
 
 .message-avatar {
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
-  background-color: #e6f7ff;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 10px;
+  margin-right: 15px;
   flex-shrink: 0;
+  font-size: 18px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.8);
 }
 
 .message.user .message-avatar {
   order: 2;
   margin-right: 0;
-  margin-left: 10px;
-  background-color: #ecf5ff;
+  margin-left: 15px;
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+}
+
+.message.assistant .message-avatar {
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  color: white;
 }
 
 .message-content {
-  max-width: 70%;
-  padding: 10px 15px;
+  padding: 15px 20px;
   position: relative;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 .message.user .message-content {
@@ -320,79 +369,147 @@ onMounted(() => {
 }
 
 .message-text {
-  line-height: 1.5;
+  line-height: 1.6;
   word-wrap: break-word;
+  font-size: 15px;
 }
 
 .message-time {
   font-size: 12px;
-  color: #999;
+  color: #7f8c8d;
   text-align: right;
-  margin-top: 5px;
+  margin-top: 8px;
+  font-style: italic;
 }
 
 .loading-message {
   align-items: center;
+  opacity: 0.8;
 }
 
 .typing-indicator {
   display: flex;
   align-items: center;
+  justify-content: center;
+  padding: 10px 0;
 }
 
 .typing-indicator span {
-  width: 8px;
-  height: 8px;
-  background-color: #999;
+  width: 10px;
+  height: 10px;
+  background: linear-gradient(135deg, #3498db, #2980b9);
   border-radius: 50%;
-  margin: 0 2px;
-  animation: typing 1.4s infinite ease-in-out;
+  margin: 0 4px;
+  animation: typing 1.4s infinite ease-in-out both;
 }
 
-.typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
-.typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+.typing-indicator span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+.typing-indicator span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0s;
+}
 
 @keyframes typing {
-  0%, 80%, 100% { transform: scale(0.8); opacity: 0.6; }
-  40% { transform: scale(1.2); opacity: 1; }
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.6;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .chat-input-area {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 25px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
 }
 
 .input-controls {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 12px;
+  margin-top: 15px;
 }
 
 .el-textarea {
   :deep(.el-textarea__inner) {
-    border-radius: 8px;
+    border-radius: 12px;
+    border: 1px solid #e0e6ed;
+    padding: 15px;
+    font-size: 15px;
+    line-height: 1.6;
+    transition: all 0.3s ease;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  :deep(.el-textarea__inner:focus) {
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
   }
 }
 
 /* 滚动条样式 */
 .chat-messages::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 .chat-messages::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: rgba(233, 236, 239, 0.5);
   border-radius: 10px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: linear-gradient(135deg, #3498db, #2980b9);
   border-radius: 10px;
 }
 
 .chat-messages::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: linear-gradient(135deg, #2980b9, #1c6ea4);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .chat-container {
+    padding: 10px;
+    height: calc(100vh - 20px);
+  }
+
+  .chat-header {
+    padding: 15px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .config-btn {
+    margin-left: 0;
+    align-self: flex-end;
+  }
+
+  .api-config {
+    margin-right: 0;
+    width: 100%;
+  }
+
+  .chat-messages {
+    padding: 15px;
+  }
+
+  .message {
+    max-width: 90%;
+  }
+
+  .chat-input-area {
+    padding: 15px;
+  }
 }
 </style>

@@ -22,7 +22,7 @@ const routes = [
     name: 'ai',
     component: () => import('../views/AITool.vue'),
     meta: {
-      title: 'AI对话',
+      title: '大模型对话',
       showInMenu: true,
       icon: HomeFilled,
     }
@@ -41,7 +41,7 @@ const routes = [
     path: '/tool',
     name: 'Tool',
     meta: {
-      title: '工具',
+      title: '常用工具',
       showInMenu: true,
       icon: Menu
     },
@@ -88,7 +88,7 @@ const routes = [
     path: '/game',
     name: 'Game',
     meta: {
-      title: '休闲',
+      title: '休闲娱乐',
       showInMenu: true,
       icon: Menu
     },
