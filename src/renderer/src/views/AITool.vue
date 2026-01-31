@@ -8,14 +8,14 @@
           <el-form-item label="API地址:">
             <el-input v-model="configForm.baseUrl" placeholder="请输入API地址"></el-input>
           </el-form-item>
-          <el-form-item label="API密钥:">
-            <el-input
-              v-model="configForm.apiKey"
-              type="password"
-              placeholder="请输入API密钥"
-              show-password
-            ></el-input>
-          </el-form-item>
+<!--          <el-form-item label="API密钥:">-->
+<!--            <el-input-->
+<!--              v-model="configForm.apiKey"-->
+<!--              type="password"-->
+<!--              placeholder="请输入API密钥"-->
+<!--              show-password-->
+<!--            ></el-input>-->
+<!--          </el-form-item>-->
           <el-form-item label="模型名称:">
             <el-input v-model="configForm.model" placeholder="请输入模型名称"></el-input>
           </el-form-item>
@@ -68,7 +68,7 @@
         v-model="inputMessage"
         :rows="3"
         type="textarea"
-        placeholder="请输入您的问题..."
+        placeholder="请输入您的问题，比如谁是世界上最美的女人..."
         maxlength="1000"
         show-word-limit
         @keyup.enter="sendIfNotShift($event)"
@@ -100,7 +100,22 @@ const configForm = reactive({
   apiKey: ref('sk-477ce61396ae463bb57fbc0858ee1f51'),
   model: ref('qwen-plus')
 })
-
+const fixedAnswers = new Map<string, string>([
+  ['谁是世界上最美的女人', '杏儿'],
+  ['谁最美', '杏儿'],
+  ['世界上最美的女人是', '杏儿'],
+  ['世界上最美的女人是谁', '杏儿'],
+  ['杏儿美不美', '美'],
+])
+// 检查是否为固定问题
+const checkFixedQuestion = (question: string): string | null => {
+  for (const [keyword, answer] of fixedAnswers.entries()) {
+    if (question.includes(keyword) || question.toLowerCase().includes(keyword.toLowerCase())) {
+      return answer
+    }
+  }
+  return null
+}
 // 消息相关
 const messages = ref([
   {
@@ -129,7 +144,17 @@ const sendMessage = async () => {
     content: message,
     timestamp: new Date()
   })
-
+  const fixedAnswer = checkFixedQuestion(message)
+  if (fixedAnswer){
+    messages.value.push({
+      role: 'assistant',
+      content: fixedAnswer,
+      timestamp: new Date()
+    })
+    inputMessage.value = ''
+    scrollToBottom()
+    return
+  }
   // 清空输入框
   inputMessage.value = ''
 
@@ -276,7 +301,6 @@ onMounted(() => {
 }
 
 .chat-messages {
-  flex: 1;
   overflow-y: auto;
   padding: 25px;
   background: rgba(255, 255, 255, 0.9);
