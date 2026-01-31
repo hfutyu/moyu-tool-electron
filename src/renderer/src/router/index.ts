@@ -28,6 +28,16 @@ const routes = [
     }
   },
   {
+    path: '/apiPlatform',
+    name: 'apiPlatform',
+    component: () => import('../views/ApiPlatform.vue'),
+    meta: {
+      title: '接口开放平台',
+      showInMenu: true,
+      icon: Document,
+    }
+  },
+  {
     path: '/ai',
     name: 'ai',
     component: () => import('../views/AITool.vue'),
