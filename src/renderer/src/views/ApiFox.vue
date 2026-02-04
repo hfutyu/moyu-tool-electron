@@ -39,15 +39,73 @@
       </div>
 
       <div class="action-buttons">
-        <el-button @click="sendRequest" type="primary" :loading="loading" size="large">
+        <el-button @click="sendRequest" type="primary" :loading="loading" size="large" :disabled="isLoopRunning">
           <span v-if="!loading">📡 发送请求</span>
           <span v-else>⏳ 发送中...</span>
+        </el-button>
+        <el-button @click="toggleLoopConfig" size="large" :type="showLoopConfig ? 'info' : 'warning'">
+          <span v-if="!showLoopConfig">⚙️ 配置循环</span>
+          <span v-else>❌ 隐藏配置</span>
+        </el-button>
+        <el-button @click="toggleLoop" :type="isLoopRunning ? 'danger' : 'warning'" size="large" :loading="loopLoading">
+          <span v-if="!isLoopRunning">🔄 循环调用</span>
+          <span v-else>⏹️ 请稍后</span>
         </el-button>
         <el-button @click="clearAll" size="large">🗑️ 清空</el-button>
       </div>
     </div>
 
+    <!-- 循环配置区域 -->
+    <div v-if="showLoopConfig" class="config-card">
+      <div class="config-section">
+        <div class="input-group">
+          <label>总运行时间 (秒)</label>
+          <el-input-number
+            v-model="loopDuration"
+            :min="1"
+            :step="1"
+            placeholder="输入运行时间"
+            class="time-input"
+          ></el-input-number>
+        </div>
 
+        <div class="input-group">
+          <label>调用次数</label>
+          <el-input-number
+            v-model="callCount"
+            :min="1"
+            :step="1"
+            placeholder="输入调用次数"
+            class="count-input"
+          ></el-input-number>
+        </div>
+
+        <div class="input-group">
+          <label>间隔模式</label>
+          <el-radio-group v-model="intervalMode">
+            <el-radio label="even">等距</el-radio>
+            <el-radio label="random">随机</el-radio>
+          </el-radio-group>
+        </div>
+      </div>
+    </div>
+
+    <!-- 循环状态显示 -->
+    <div v-if="isLoopRunning" class="loop-status-card">
+      <div class="status-info">
+        <div class="status-row">
+          <span>⏱️ 已运行: {{ loopElapsedTime.toFixed(1) }}s / {{ loopDuration }}s</span>
+          <span>📊 已完成: {{ completedCalls }} / {{ callCount }}</span>
+        </div>
+        <div class="progress-container">
+          <el-progress
+            :percentage="Math.min((loopElapsedTime / loopDuration) * 100, 100)"
+            :status="completedCalls >= callCount ? 'success' : ''"
+            :stroke-width="12"
+          />
+        </div>
+      </div>
+    </div>
 
     <!-- 请求头配置区域 -->
     <div class="card">
@@ -134,6 +192,31 @@
       </div>
     </div>
 
+    <!-- 循环调用结果区域 -->
+    <div v-if="loopResults.length > 0" class="result-card loop-results">
+      <div class="result-header">
+        <h3>🔄 循环调用结果</h3>
+        <el-button @click="clearLoopResults" size="small" type="info">清空结果</el-button>
+      </div>
+      <div class="loop-results-container">
+        <div
+          v-for="(result, index) in loopResults.slice().reverse()"
+          :key="index"
+          class="loop-result-item"
+          :class="{ 'error': result.error }"
+        >
+          <div class="result-summary">
+            <span class="result-index">#{{ loopResults.length - index }}</span>
+            <span class="result-time">{{ new Date(result.timestamp).toLocaleTimeString() }}</span>
+            <span v-if="!result.error" class="result-status">✅ {{ result.status }}</span>
+            <span v-else class="result-status error">❌ 错误</span>
+          </div>
+          <div v-if="result.error" class="result-error">{{ result.error }}</div>
+          <div v-else class="result-data">{{ formatResponse(result.data) }}</div>
+        </div>
+      </div>
+    </div>
+
     <!-- 请求历史侧边栏 -->
     <div class="card">
       <div class="history-header">
@@ -167,9 +250,9 @@ import { callApi } from '@renderer/api/api'
 
 // 基础URL和路径
 // const baseUrl = ref('https://ebike.ievcloud.com/admin-api')
-const baseUrl = ref('https://127.0.0.1:6666')
+const baseUrl = ref('http://127.0.0.1:48080')
 // const path = ref('/ep/overview/day/getBatteryMileageStats?groupType=1')
-const path = ref('')
+const path = ref('/webApiServer/qpstest')
 
 // 请求方法
 const method = ref('GET')
@@ -191,6 +274,19 @@ const loading = ref(false)
 
 // 请求历史
 const requestHistory = ref<any[]>([])
+
+// 循环调用相关状态
+const showLoopConfig = ref(false)
+const isLoopRunning = ref(false)
+const loopLoading = ref(false)
+const loopDuration = ref(1) // 总运行时间（秒）
+const callCount = ref(10) // 调用次数
+const intervalMode = ref<'even' | 'random'>('even') // 间隔模式
+const loopStartTime = ref<number | null>(null)
+const loopIntervalId = ref<ReturnType<typeof setTimeout> | null>(null)
+const completedCalls = ref(0)
+const loopElapsedTime = ref(0)
+const loopResults = ref<any[]>([]) // 存储循环调用的结果
 
 // 计算属性判断是否是GET请求
 const isGetRequest = computed(() => {
@@ -262,6 +358,166 @@ const sendRequest = async () => {
   }
 }
 
+// 切换循环配置显示/隐藏
+const toggleLoopConfig = () => {
+  showLoopConfig.value = !showLoopConfig.value
+}
+
+// 开始/停止循环调用
+const toggleLoop = async () => {
+  if (!isLoopRunning.value) {
+    await startLoop()
+  } else {
+    stopLoop()
+  }
+}
+
+// 开始循环调用
+const startLoop = async () => {
+  if (loopDuration.value <= 0 || callCount.value <= 0) {
+    alert('请设置有效的运行时间和调用次数')
+    return
+  }
+
+  // 初始化循环状态
+  isLoopRunning.value = true
+  loopLoading.value = true
+  completedCalls.value = 0
+  loopElapsedTime.value = 0
+  loopResults.value = []
+  loopStartTime.value = Date.now()
+
+  // 启动计时器更新已用时间
+  loopIntervalId.value = setInterval(() => {
+    if (loopStartTime.value !== null) {
+      loopElapsedTime.value = (Date.now() - loopStartTime.value) / 1000
+
+      // 如果达到最大时间且已完成所有调用，则停止循环
+      if (loopElapsedTime.value >= loopDuration.value || completedCalls.value >= callCount.value) {
+        stopLoop()
+      }
+    }
+  }, 100)
+
+  // 根据间隔模式启动循环
+  if (intervalMode.value === 'even') {
+    await runEvenIntervalLoop()
+  } else {
+    await runRandomIntervalLoop()
+  }
+}
+
+// 等距间隔循环
+const runEvenIntervalLoop = async () => {
+  const interval = (loopDuration.value * 1000) / callCount.value
+  for (let i = 0; i < callCount.value; i++) {
+    if (!isLoopRunning.value) break
+    executeSingleCall() // 不要等待 异步调用
+    if (i < callCount.value - 1) { // 不是最后一次调用
+      await sleep(interval)
+    }
+  }
+
+  stopLoop()
+}
+
+// 随机间隔循环
+const runRandomIntervalLoop = async () => {
+  for (let i = 0; i < callCount.value; i++) {
+    if (!isLoopRunning.value) break
+
+    await executeSingleCall()
+
+    if (i < callCount.value - 1) { // 不是最后一次调用
+      // 随机延迟，平均间隔为总时间除以剩余调用次数
+      const remainingTime = (loopDuration.value * 1000) - loopElapsedTime.value * 1000
+      const remainingCalls = callCount.value - completedCalls.value
+      const avgInterval = remainingTime / remainingCalls
+
+      // 随机延迟范围为平均间隔的 30% 到 170%
+      const randomInterval = avgInterval * (0.3 + Math.random() * 1.4)
+      await sleep(Math.min(randomInterval, remainingTime)) // 不超过剩余时间
+    }
+  }
+
+  stopLoop()
+}
+
+// 执行单次调用
+const executeSingleCall = async () => {
+  try {
+    // 解析请求数据
+    let parsedData: any = null
+    if (requestData.value.trim()) {
+      try {
+        parsedData = JSON.parse(requestData.value)
+      } catch (e) {
+        // 如果不是JSON格式，则作为字符串发送
+        parsedData = requestData.value
+      }
+    }
+
+    // 构建完整URL
+    const fullUrl = path.value.startsWith('/') ? `${baseUrl.value}${path.value}` : `${baseUrl.value}/${path.value}`
+
+    // 构建请求头对象
+    const headersObj: Record<string, string> = {}
+    headers.value.forEach(header => {
+      if (header.key && header.value) {
+        headersObj[header.key] = header.value
+      }
+    })
+
+    // 发送请求
+    let result
+    if (isGetRequest.value) {
+      // GET请求使用params
+      result = await callApi(method.value, fullUrl, undefined, headersObj, parsedData)
+    } else {
+      // POST/PUT/PATCH请求使用data
+      result = await callApi(method.value, fullUrl, parsedData, headersObj)
+    }
+
+    // 存储结果
+    loopResults.value.push({
+      status: result.status || 200,
+      statusText: result.statusText || 'OK',
+      data: result.data || result,
+      timestamp: new Date().toISOString(),
+      error: null
+    })
+  } catch (err: any) {
+    console.error('循环API请求失败:', err)
+    loopResults.value.push({
+      error: err.message || JSON.stringify(err),
+      timestamp: new Date().toISOString()
+    })
+  } finally {
+    completedCalls.value++
+  }
+}
+
+// 停止循环
+const stopLoop = () => {
+  isLoopRunning.value = false
+  loopLoading.value = false
+
+  if (loopIntervalId.value) {
+    clearInterval(loopIntervalId.value)
+    loopIntervalId.value = null
+  }
+}
+
+// 清空循环结果
+const clearLoopResults = () => {
+  loopResults.value = []
+}
+
+// 休眠函数
+const sleep = (ms: number): Promise<void> => {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 // 保存到历史记录
 const saveToHistory = () => {
   const historyItem = {
@@ -293,7 +549,6 @@ const restoreRequest = (item: any) => {
   headers.value = [...item.headers]
   requestData.value = item.requestData
   isMultilineData.value = true
-
 }
 
 // 清空历史记录
@@ -320,7 +575,7 @@ const getStatusTagType = (status: number) => {
 
 // 清空所有内容
 const clearAll = () => {
-  path.value = '/ep/overview/day/getBatteryMileageStats?groupType=1'
+  path.value = '/webApiServer/qpstest'
   requestData.value = ''
   response.value = null
   error.value = null
@@ -328,6 +583,9 @@ const clearAll = () => {
     { key: 'Content-Type', value: 'application/json' },
     { key: 'Authorization', value: 'Bearer 299d8d6ed59c42a3a2ebd0bd283b9722' },
   ]
+  // 重置循环配置
+  showLoopConfig.value = false
+  stopLoop()
 }
 
 // 获取方法标签类
@@ -412,7 +670,7 @@ if (localStorage.getItem('apiTestHistory')) {
   width: 100%;
 }
 
-.url-input, .path-input {
+.url-input, .path-input, .time-input, .count-input {
   width: 100%;
 }
 
@@ -493,6 +751,11 @@ if (localStorage.getItem('apiTestHistory')) {
 .result-card.error {
   background: linear-gradient(135deg, #fef0f0 0%, #fdf6ec 100%);
   border: 1px solid #fcd3cf;
+}
+
+.result-card.loop-results {
+  background: linear-gradient(135deg, #fff9f0 0%, #ffe8cc 100%);
+  border: 1px solid #ffd8b3;
 }
 
 .result-header {
@@ -666,6 +929,91 @@ if (localStorage.getItem('apiTestHistory')) {
   font-style: italic;
 }
 
+.loop-status-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+  grid-column: 1 / -1;
+}
+
+.status-info {
+  width: 100%;
+}
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.progress-container {
+  width: 100%;
+}
+
+.loop-results-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.loop-result-item {
+  padding: 12px;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: white;
+}
+
+.loop-result-item.error {
+  border-left: 4px solid #f56c6c;
+}
+
+.result-summary {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.result-index {
+  font-weight: bold;
+  color: #909399;
+}
+
+.result-time {
+  color: #909399;
+}
+
+.result-status {
+  font-weight: bold;
+}
+
+.result-status.error {
+  color: #f56c6c;
+}
+
+.result-error {
+  color: #f56c6c;
+  font-family: monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+.result-data {
+  font-family: monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: #f8f9fa;
+  padding: 8px;
+  border-radius: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -726,6 +1074,11 @@ if (localStorage.getItem('apiTestHistory')) {
 
   .history-sidebar {
     width: 100%;
+  }
+
+  .status-row {
+    flex-direction: column;
+    gap: 8px;
   }
 }
 </style>
