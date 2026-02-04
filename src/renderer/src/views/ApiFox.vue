@@ -1,8 +1,8 @@
 <template>
   <div class="api-test-tool">
     <div class="tool-header">
-      <h2>🚀 API 调试</h2>
-      <p class="tool-description">快速测试您的API接口，支持多种请求方法和自定义配置</p>
+      <h2>🚀 API 调试/压测</h2>
+      <p class="tool-description">测试API接口，支持自定义压测</p>
     </div>
 
     <!-- 基本配置区域 -->
@@ -36,22 +36,28 @@
             class="path-input"
           ></el-input>
         </div>
-      </div>
 
+      </div>
       <div class="action-buttons">
-        <el-button @click="sendRequest" type="primary" :loading="loading" size="large" :disabled="isLoopRunning">
-          <span v-if="!loading">📡 发送请求</span>
+        <el-button @click="sendRequest" type="primary" :loading="loading" :disabled="isLoopRunning">
+          <span v-if="!loading">发送</span>
           <span v-else>⏳ 发送中...</span>
         </el-button>
-        <el-button @click="toggleLoopConfig" size="large" :type="showLoopConfig ? 'info' : 'warning'">
-          <span v-if="!showLoopConfig">⚙️ 配置循环</span>
-          <span v-else>❌ 隐藏配置</span>
-        </el-button>
-        <el-button @click="toggleLoop" :type="isLoopRunning ? 'danger' : 'warning'" size="large" :loading="loopLoading">
-          <span v-if="!isLoopRunning">🔄 循环调用</span>
-          <span v-else>⏹️ 请稍后</span>
-        </el-button>
-        <el-button @click="clearAll" size="large">🗑️ 清空</el-button>
+        <el-button-group>
+          <el-button @click="toggleLoop" :type="isLoopRunning ? 'danger' : 'success'" :loading="loopLoading">
+            <span v-if="!isLoopRunning">循环发送</span>
+            <span v-else>请稍后</span>
+          </el-button>
+          <el-button style="width: 20px;" @click="toggleLoopConfig" :type="showLoopConfig ? 'info': 'success'">
+            <span v-if="!showLoopConfig">
+              <el-icon><View /></el-icon>
+            </span>
+            <span v-else>
+              <el-icon><Hide /></el-icon>
+            </span>
+          </el-button>
+        </el-button-group>
+        <el-button @click="clearAll">清空</el-button>
       </div>
     </div>
 
@@ -107,52 +113,58 @@
       </div>
     </div>
 
-    <!-- 请求头配置区域 -->
-    <div class="card">
-      <div class="card-header">
-        <h3>🏷️ 请求头配置</h3>
-        <el-button @click="addHeader" size="small" type="success" plain>
-          ➕ 添加请求头
-        </el-button>
-      </div>
-      <div class="headers-container">
-        <div
-          v-for="(header, index) in headers"
-          :key="index"
-          class="header-item"
-        >
-          <el-input
-            v-model="header.key"
-            placeholder="键，如: Content-Type"
-            class="header-key"
-          ></el-input>
-          <el-input
-            v-model="header.value"
-            placeholder="值，如: application/json"
-            class="header-value"
-          ></el-input>
-          <el-button
-            @click="removeHeader(index)"
-            size="small"
-            type="danger"
-            plain
-            class="remove-btn"
-          >
-            🗑️ 删除
-          </el-button>
-        </div>
-      </div>
-    </div>
-
     <!-- 请求数据区域 -->
     <div class="card">
+      <div class="" v-if="true">
+        <div class="card-header">
+          <h3>
+            📄 请求头
+            <el-icon v-if="!isHeaderCardShow" @click="isHeaderCardShow = !isHeaderCardShow"><View /></el-icon>
+            <el-icon v-else @click="isHeaderCardShow = !isHeaderCardShow"><Hide /></el-icon>
+          </h3>
+          <el-button v-if="isHeaderCardShow" @click="addHeader" size="small" type="success" plain>
+            ➕ 添加请求头
+          </el-button>
+        </div>
+        <div class="headers-container" v-if="isHeaderCardShow">
+          <div
+            v-for="(header, index) in headers"
+            :key="index"
+            class="header-item"
+          >
+            <el-input
+              v-model="header.key"
+              placeholder="键，如: Content-Type"
+              class="header-key"
+            ></el-input>
+            <el-input
+              v-model="header.value"
+              placeholder="值，如: application/json"
+              class="header-value"
+            ></el-input>
+            <el-button
+              @click="removeHeader(index)"
+              size="small"
+              type="danger"
+              plain
+              class="remove-btn"
+            >
+              🗑️ 删除
+            </el-button>
+          </div>
+        </div>
+      </div>
       <div class="card-header">
-        <h3>{{ isGetRequest ? '🔍 查询参数' : '📝 请求体数据' }}</h3>
-        <el-checkbox v-model="isMultilineData" class="multiline-toggle">
+        <h3>{{ isGetRequest ? '🔍 查询参数' : '📝 请求体数据' }}
+          <el-icon v-if="!isRequestCardShow" @click="isRequestCardShow = !isRequestCardShow"><View /></el-icon>
+          <el-icon v-else @click="isRequestCardShow = !isRequestCardShow"><Hide /></el-icon>
+        </h3>
+        <el-checkbox v-if="isRequestCardShow" v-model="isMultilineData" class="multiline-toggle">
           多行输入
         </el-checkbox>
       </div>
       <el-input
+        v-if="isRequestCardShow"
         v-model="requestData"
         :type="isMultilineData ? 'textarea' : 'text'"
         :rows="8"
@@ -247,7 +259,7 @@
 <script lang="ts" setup>
 import { ref, computed } from 'vue'
 import { callApi } from '@renderer/api/api'
-
+import { View, Hide } from '@element-plus/icons-vue'
 // 基础URL和路径
 // const baseUrl = ref('https://ebike.ievcloud.com/admin-api')
 const baseUrl = ref('http://127.0.0.1:48080')
@@ -258,12 +270,14 @@ const path = ref('/webApiServer/qpstest')
 const method = ref('GET')
 
 // 请求头
+const isHeaderCardShow = ref(false)
 const headers = ref([
   { key: 'Content-Type', value: 'application/json' },
   { key: 'Authorization', value: 'Bearer tokenstr' },
 ])
 
 // 请求数据
+const isRequestCardShow = ref(false)
 const requestData = ref('')
 const isMultilineData = ref(true)
 
@@ -611,25 +625,27 @@ if (localStorage.getItem('apiTestHistory')) {
 
 <style scoped>
 .api-test-tool {
-  padding: 24px;
+  padding-left: 24px;
+  padding-right: 24px;
   max-width: 1400px;
   margin: 0 auto;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 24px;
+  gap: 0px;
 }
 
 .tool-header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 0px;
   grid-column: 1 / -1;
 }
 
 .tool-header h2 {
   color: #1f2d3d;
   font-size: 28px;
-  margin-bottom: 8px;
+  margin-bottom: 0;
+  margin-top: 0;
   font-weight: 600;
 }
 
@@ -649,8 +665,8 @@ if (localStorage.getItem('apiTestHistory')) {
 
 .config-section {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 10px;
   margin-bottom: 24px;
 }
 
@@ -675,6 +691,7 @@ if (localStorage.getItem('apiTestHistory')) {
 }
 
 .action-buttons {
+  margin-top: 12px;
   display: flex;
   gap: 12px;
   justify-content: flex-end;
@@ -690,18 +707,24 @@ if (localStorage.getItem('apiTestHistory')) {
 }
 
 .card-header {
+  height: 40px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #ebeef5;
+  padding-bottom: 4px;
+}
+
+.card-header label {
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #303133;
+  font-size: 14px;
 }
 
 .card-header h3 {
   margin: 0;
   color: #303133;
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -723,7 +746,7 @@ if (localStorage.getItem('apiTestHistory')) {
 }
 
 .remove-btn {
-  height: 40px;
+  height: 30px;
   margin: 0 !important;
 }
 

@@ -2,7 +2,7 @@
   <div class="home-container">
     <!-- 欢迎横幅 -->
     <div class="welcome-banner">
-      <h1 class="welcome-title">这是一个用于练习Electron的APP</h1>
+      <h1 class="welcome-title">这是一个牛逼哄哄的APP</h1>
       <p class="welcome-subtitle">包含一些常用工具</p>
       <div class="feature-grid">
         <div class="feature-card" v-for="(feature, index) in features" :key="index">
