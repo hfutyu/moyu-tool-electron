@@ -57,6 +57,15 @@ const routes = [
     },
     children: [
       {
+        path: 'pic',
+        name: 'PicConvert',
+        component: () => import('../views/tool/PicConvert.vue'),
+        meta: {
+          title: '图片转换器',
+          showInMenu: true
+        }
+      },
+      {
         path: 'unicode',
         name: 'UnicodeConvert',
         component: () => import('../views/tool/UnicodeConvert.vue'),
