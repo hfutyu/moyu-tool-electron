@@ -154,28 +154,33 @@
           </div>
         </div>
       </div>
+
+      <!-- 数据格式选择 -->
       <div class="card-header">
         <h3>{{ isGetRequest ? '🔍 查询参数' : '📝 请求体数据' }}
           <el-icon v-if="!isRequestCardShow" @click="isRequestCardShow = !isRequestCardShow"><View /></el-icon>
           <el-icon v-else @click="isRequestCardShow = !isRequestCardShow"><Hide /></el-icon>
         </h3>
-        <el-checkbox v-if="isRequestCardShow" v-model="isMultilineData" class="multiline-toggle">
-          多行输入
-        </el-checkbox>
+        <el-radio-group v-if="isRequestCardShow" v-model="dataFormat" size="small">
+          <el-radio label="json">JSON</el-radio>
+          <el-radio label="form">FormData</el-radio>
+        </el-radio-group>
       </div>
+
+      <!-- 输入框 -->
       <el-input
         v-if="isRequestCardShow"
         v-model="requestData"
         :type="isMultilineData ? 'textarea' : 'text'"
         :rows="8"
-        :placeholder="isGetRequest ? '输入查询参数(JSON格式)': '输入请求数据(JSON格式)'"
+        :placeholder="getPlaceholderText()"
         class="data-input"
       />
     </div>
 
     <!-- 响应结果区域 -->
     <div v-if="response" class="result-card success">
-      <div class="result-header">
+      <el-icon class="close-icon" @click="response = null"><Close /></el-icon>      <div class="result-header">
         <h3>✅ 响应结果</h3>
         <div class="status-badge">
           <el-tag :type="getStatusTagType(response.status)" size="large">
@@ -257,9 +262,9 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { callApi } from '@renderer/api/api'
-import { View, Hide } from '@element-plus/icons-vue'
+import { View, Hide,Close } from '@element-plus/icons-vue'
 // 基础URL和路径
 // const baseUrl = ref('https://ebike.ievcloud.com/admin-api')
 const baseUrl = ref('http://127.0.0.1:48080')
@@ -272,8 +277,8 @@ const method = ref('GET')
 // 请求头
 const isHeaderCardShow = ref(false)
 const headers = ref([
-  { key: 'Content-Type', value: 'application/json' },
   { key: 'Authorization', value: 'Bearer tokenstr' },
+  { key: 'Content-Type', value: 'application/json' },
 ])
 
 // 请求数据
@@ -317,34 +322,61 @@ const removeHeader = (index: number) => {
   headers.value.splice(index, 1)
 }
 
-// 发送请求
+// 新增状态变量：数据格式（json 或 form）
+const dataFormat = ref<'json' | 'form'>('json')
+
+// 更新占位符文本函数
+const getPlaceholderText = () => {
+  if (isGetRequest.value) {
+    return '输入查询参数（JSON格式）'
+  } else {
+    return dataFormat.value === 'json'
+      ? '输入请求数据（JSON格式）'
+      : '输入表单数据（key:value，每行一个）'
+  }
+}
+
+// 修改 sendRequest 函数以支持 FormData 格式
 const sendRequest = async () => {
   loading.value = true
   response.value = null
   error.value = null
 
   try {
-    // 解析请求数据
     let parsedData: any = null
-    if (requestData.value.trim()) {
-      try {
-        parsedData = JSON.parse(requestData.value)
-      } catch (e) {
-        // 如果不是JSON格式，则作为字符串发送
-        parsedData = requestData.value
-      }
-    }
-
-    // 构建完整URL
-    const fullUrl = path.value.startsWith('/') ? `${baseUrl.value}${path.value}` : `${baseUrl.value}/${path.value}`
+    let headersObj: Record<string, string> = {}
 
     // 构建请求头对象
-    const headersObj: Record<string, string> = {}
     headers.value.forEach(header => {
       if (header.key && header.value) {
         headersObj[header.key] = header.value
       }
     })
+
+    // 根据数据格式解析请求数据
+    if (requestData.value.trim()) {
+      if (dataFormat.value === 'json') {
+        try {
+          parsedData = JSON.parse(requestData.value)
+        } catch (e) {
+          parsedData = requestData.value // 如果不是JSON格式，则作为字符串发送
+        }
+      } else if (dataFormat.value === 'form') {
+        // 支持 key:value 格式解析 FormData
+        parsedData = {}
+        requestData.value.split('\n').forEach(line => {
+          const [key, value] = line.split(':').map(str => str.trim())
+          if (key && value) {
+            parsedData[key] = value
+          }
+        })
+      }
+    }
+
+    // 构建完整URL
+    const fullUrl = path.value.startsWith('/')
+      ? `${baseUrl.value}${path.value}`
+      : `${baseUrl.value}/${path.value}`
 
     // 发送请求
     let result
@@ -371,6 +403,7 @@ const sendRequest = async () => {
     loading.value = false
   }
 }
+
 
 // 切换循环配置显示/隐藏
 const toggleLoopConfig = () => {
@@ -462,12 +495,23 @@ const executeSingleCall = async () => {
   try {
     // 解析请求数据
     let parsedData: any = null
+    // 根据数据格式解析请求数据
     if (requestData.value.trim()) {
-      try {
-        parsedData = JSON.parse(requestData.value)
-      } catch (e) {
-        // 如果不是JSON格式，则作为字符串发送
-        parsedData = requestData.value
+      if (dataFormat.value === 'json') {
+        try {
+          parsedData = JSON.parse(requestData.value)
+        } catch (e) {
+          parsedData = requestData.value // 如果不是JSON格式，则作为字符串发送
+        }
+      } else if (dataFormat.value === 'form') {
+        // 支持 key:value 格式解析 FormData
+        parsedData = {}
+        requestData.value.split('\n').forEach(line => {
+          const [key, value] = line.split(':').map(str => str.trim())
+          if (key && value) {
+            parsedData[key] = value
+          }
+        })
       }
     }
 
@@ -594,8 +638,8 @@ const clearAll = () => {
   response.value = null
   error.value = null
   headers.value = [
-    { key: 'Content-Type', value: 'application/json' },
     { key: 'Authorization', value: 'Bearer 299d8d6ed59c42a3a2ebd0bd283b9722' },
+    { key: 'Content-Type', value: 'application/json' },
   ]
   // 重置循环配置
   showLoopConfig.value = false
@@ -621,7 +665,21 @@ if (localStorage.getItem('apiTestHistory')) {
     console.error('加载历史记录失败:', e)
   }
 }
+watch(dataFormat, (newValue, oldValue) => {
+  console.log(`数据格式从 ${oldValue} 切换为 ${newValue}`)
+  headers.value = headers.value.filter(header => header.key !== 'Content-Type');
+  if (newValue === 'form') {
+    method.value = 'POST'
+    headers.value.push({ key: 'Content-Type', value: 'multipart/form-data' });
+  } else if(newValue === 'json'){
+    headers.value.push({ key: 'Content-Type', value: 'multipart/form-data' });
+  }
+})
 </script>
+
+<style scoped>
+/* 样式部分省略，可参考原文件中的样式 */
+</style>
 
 <style scoped>
 .api-test-tool {
@@ -764,6 +822,14 @@ if (localStorage.getItem('apiTestHistory')) {
   margin-bottom: 24px;
   animation: slideIn 0.3s ease-out;
   grid-column: 1 / -1;
+  position: relative;
+}
+
+.result-card .close-icon {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  cursor: pointer;
 }
 
 .result-card.success {
@@ -915,23 +981,23 @@ if (localStorage.getItem('apiTestHistory')) {
 }
 
 .method-get {
-  background-color: #67c23a;
+  background-color: #06B481;
 }
 
 .method-post {
-  background-color: #409eff;
+  background-color: #EC8261;
 }
 
 .method-put {
-  background-color: #e6a23c;
+  background-color: #8393F5;
 }
 
 .method-delete {
-  background-color: #f56c6c;
+  background-color: #FD6B66;
 }
 
 .method-patch {
-  background-color: #909399;
+  background-color: #F456C0;
 }
 
 .history-url {
