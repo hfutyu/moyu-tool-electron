@@ -56,6 +56,16 @@ const routes = [
           icon: ChatDotSquare,
         }
       },
+      {
+        path: '/cat',
+        name: 'cat',
+        component: () => import('../views/cyber/PetCat.vue'),
+        meta: {
+          title: '赛博宠物猫',
+          showInMenu: true,
+          icon: ChatDotSquare,
+        }
+      },
     ]
   },
   {
@@ -162,6 +172,16 @@ const routes = [
         }
       },
     ]
+  },
+  {
+    path: '/resource',
+    name: 'resource',
+    component: () => import('../views/ResourceMonitor.vue'),
+    meta: {
+      title: '资源监控',
+      showInMenu: true,
+      icon: User,
+    }
   },
   {
     path: '/self',
