@@ -103,6 +103,7 @@ const configForm = reactive({
 const fixedAnswers = new Map<string, string>([
   ['谁是世界上最美的女人', '杏儿'],
   ['谁最美', '杏儿'],
+  ['谁是最美', '杏儿'],
   ['世界上最美的女人是', '杏儿'],
   ['世界上最美的女人是谁', '杏儿'],
   ['杏儿美不美', '美'],
@@ -111,6 +112,10 @@ const fixedAnswers = new Map<string, string>([
 const checkFixedQuestion = (question: string): string | null => {
   for (const [keyword, answer] of fixedAnswers.entries()) {
     if (question.includes(keyword) || question.toLowerCase().includes(keyword.toLowerCase())) {
+      var name = localStorage.getItem("sbmj")
+      if (name && name !== ''){
+        return name
+      }
       return answer
     }
   }
@@ -246,7 +251,6 @@ onMounted(() => {
 .chat-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
   max-width: 900px;
   margin: 0 auto;
   padding: 20px;
@@ -301,6 +305,7 @@ onMounted(() => {
 }
 
 .chat-messages {
+  min-height: 260px;
   overflow-y: auto;
   padding: 25px;
   background: rgba(255, 255, 255, 0.9);
@@ -342,7 +347,7 @@ onMounted(() => {
 }
 
 .message.user .message-content {
-  background: linear-gradient(135deg, #3498db, #2980b9);
+  background: linear-gradient(135deg, #53b1f1, #184663);
   color: white;
   border-radius: 20px 4px 20px 20px;
   box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
@@ -504,7 +509,7 @@ onMounted(() => {
 @media (max-width: 768px) {
   .chat-container {
     padding: 10px;
-    height: calc(100vh - 20px);
+    height: calc(100vh - 200px);
   }
 
   .chat-header {

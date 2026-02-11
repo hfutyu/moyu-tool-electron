@@ -1,6 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import { HomeFilled, Menu, User, Document } from '@element-plus/icons-vue'
+import { HomeFilled, Menu, User, Document, ChatDotSquare } from '@element-plus/icons-vue'
 import { nextTick } from 'vue' // 如果使用Element Plus图标
 const routes = [
   {
@@ -18,34 +18,45 @@ const routes = [
     }
   },
   {
-    path: '/api',
-    name: 'API',
-    component: () => import('../views/ApiFox.vue'),
-    meta: {
-      title: 'API调试',
-      showInMenu: true,
-      icon: Document,
-    }
-  },
-  {
     path: '/apiPlatform',
     name: 'apiPlatform',
     component: () => import('../views/ApiPlatform.vue'),
     meta: {
       title: '接口开放平台',
-      showInMenu: true,
+      showInMenu: false,
       icon: Document,
     }
   },
   {
-    path: '/ai',
-    name: 'ai',
-    component: () => import('../views/AITool.vue'),
+    path: '/cyber',
+    name: 'cyber',
     meta: {
-      title: '大模型对话',
+      title: '赛博系列',
       showInMenu: true,
-      icon: HomeFilled,
-    }
+      icon: Menu
+    },
+    children: [
+      {
+        path: '/ai',
+        name: 'ai',
+        component: () => import('../views/cyber/AITool.vue'),
+        meta: {
+          title: '模型对话(赛博魔镜)',
+          showInMenu: true,
+          icon: ChatDotSquare,
+        }
+      },
+      {
+        path: '/sacrifice',
+        name: 'sacrifice',
+        component: () => import('../views/cyber/Sacrifice.vue'),
+        meta: {
+          title: '赛博祭祖',
+          showInMenu: true,
+          icon: ChatDotSquare,
+        }
+      },
+    ]
   },
   {
     path: '/tool',
@@ -56,6 +67,17 @@ const routes = [
       icon: Menu
     },
     children: [
+
+      {
+        path: '/api',
+        name: 'API',
+        component: () => import('../views/tool/ApiFox.vue'),
+        meta: {
+          title: 'API调试',
+          showInMenu: true,
+          // icon: Document,
+        }
+      },
       {
         path: 'pic',
         name: 'PicConvert',
