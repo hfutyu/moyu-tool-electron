@@ -41,7 +41,7 @@ const routes = [
         name: 'ai',
         component: () => import('../views/cyber/AITool.vue'),
         meta: {
-          title: '模型对话(赛博魔镜)',
+          title: '赛博魔镜(千问)',
           showInMenu: true,
           icon: ChatDotSquare,
         }
