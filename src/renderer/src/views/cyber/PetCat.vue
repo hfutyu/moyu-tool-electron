@@ -220,7 +220,7 @@ import {
 } from '@element-plus/icons-vue'
 
 // 宠物名字
-const petName = ref('')
+const petName = ref('爵士好猫')
 
 // 宠物状态
 const hunger = ref(80)
@@ -245,9 +245,9 @@ let statusInterval: number | null = null
 
 // 获取进度条颜色
 const getBarColor = (value: number) => {
-  if (value >= 80) return '#27ae60'
-  if (value >= 50) return '#f39c12'
-  return '#e74c3c'
+  if (value >= 80) return '#f7d794'
+  if (value >= 50) return '#f19066'
+  return '#e55039'
 }
 
 // 显示消息
@@ -422,7 +422,7 @@ onUnmounted(() => {
   min-height: 100vh;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #3d5a6c 100%);
+  background: linear-gradient(135deg, #f5e6d3 0%, #f7d794 30%, #f19066 60%, #e55039 100%);
   padding: 20px;
 }
 
@@ -442,8 +442,8 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   background-image:
-    linear-gradient(rgba(150, 180, 200, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(150, 180, 200, 0.05) 1px, transparent 1px);
+    linear-gradient(rgba(255, 200, 150, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 200, 150, 0.08) 1px, transparent 1px);
   background-size: 60px 60px;
   animation: gridMove 30s linear infinite;
 }
@@ -457,7 +457,7 @@ onUnmounted(() => {
   position: absolute;
   width: 100%;
   height: 100%;
-  background: radial-gradient(ellipse at center, rgba(150, 180, 200, 0.05) 0%, transparent 60%);
+  background: radial-gradient(ellipse at center, rgba(255, 220, 180, 0.1) 0%, transparent 60%);
 }
 
 /* 主容器 */
@@ -477,13 +477,14 @@ onUnmounted(() => {
 .cyber-title {
   font-size: 42px;
   font-weight: bold;
-  color: #7f8c8d;
+  color: #d35400;
   margin-bottom: 10px;
   letter-spacing: 3px;
+  text-shadow: 0 2px 4px rgba(211, 84, 0, 0.3);
 }
 
 .title-sub {
-  color: #95a5a6;
+  color: #e67e22;
   font-size: 15px;
   letter-spacing: 2px;
 }
@@ -494,11 +495,11 @@ onUnmounted(() => {
 }
 
 .pet-container {
-  background: rgba(255, 255, 255, 0.08);
-  border: 2px solid rgba(127, 140, 141, 0.4);
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(230, 126, 34, 0.3);
   border-radius: 20px;
   padding: 40px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 24px rgba(230, 126, 34, 0.15);
 }
 
 .pet-avatar {
@@ -546,9 +547,9 @@ onUnmounted(() => {
   transform: translateX(-50%);
   width: 100px;
   height: 90px;
-  background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+  background: linear-gradient(135deg, #f7d794, #f19066);
   border-radius: 50% 50% 45% 45%;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 8px rgba(241, 144, 102, 0.3);
 }
 
 .cat-ear {
@@ -558,7 +559,7 @@ onUnmounted(() => {
   height: 0;
   border-left: 18px solid transparent;
   border-right: 18px solid transparent;
-  border-bottom: 30px solid #7f8c8d;
+  border-bottom: 30px solid #f19066;
 }
 
 .cat-ear.left {
@@ -589,7 +590,7 @@ onUnmounted(() => {
 .eye {
   width: 16px;
   height: 20px;
-  background: #34495e;
+  background: #5d4037;
   border-radius: 50%;
   position: relative;
   overflow: hidden;
@@ -598,7 +599,7 @@ onUnmounted(() => {
 .eye.closed {
   height: 4px;
   border-radius: 2px;
-  background: #34495e;
+  background: #5d4037;
 }
 
 .pupil {
@@ -608,7 +609,7 @@ onUnmounted(() => {
   transform: translate(-50%, -50%);
   width: 8px;
   height: 12px;
-  background: #2c3e50;
+  background: #3e2723;
   border-radius: 50%;
 }
 
@@ -619,7 +620,7 @@ onUnmounted(() => {
   transform: translateX(-50%);
   width: 10px;
   height: 8px;
-  background: #e74c3c;
+  background: #ff6b6b;
   border-radius: 50% 50% 50% 50% / 40% 40% 60% 60%;
 }
 
@@ -630,7 +631,7 @@ onUnmounted(() => {
   transform: translateX(-50%);
   width: 16px;
   height: 8px;
-  border: 2px solid #34495e;
+  border: 2px solid #5d4037;
   border-top: none;
   border-radius: 0 0 50% 50%;
 }
@@ -645,7 +646,7 @@ onUnmounted(() => {
   position: absolute;
   width: 35px;
   height: 2px;
-  background: rgba(52, 73, 94, 0.6);
+  background: rgba(93, 64, 55, 0.6);
   border-radius: 1px;
 }
 
@@ -678,9 +679,9 @@ onUnmounted(() => {
   transform: translateX(-50%);
   width: 80px;
   height: 50px;
-  background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+  background: linear-gradient(135deg, #f7d794, #f19066);
   border-radius: 40% 40% 50% 50%;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 8px rgba(241, 144, 102, 0.3);
 }
 
 .cat-tail {
@@ -689,11 +690,11 @@ onUnmounted(() => {
   right: 10px;
   width: 8px;
   height: 60px;
-  background: linear-gradient(135deg, #95a5a6, #7f8c8d);
+  background: linear-gradient(135deg, #f7d794, #f19066);
   border-radius: 4px;
   transform-origin: bottom center;
   transform: rotate(30deg);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 4px rgba(241, 144, 102, 0.3);
 }
 
 .cat-tail.wagging {
@@ -712,15 +713,15 @@ onUnmounted(() => {
 }
 
 .cyber-input :deep(.el-input__inner) {
-  background: rgba(255, 255, 255, 0.1) !important;
-  border: 1px solid rgba(127, 140, 141, 0.4) !important;
-  color: #7f8c8d !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 2px solid rgba(230, 126, 34, 0.3) !important;
+  color: #d35400 !important;
   text-align: center;
   font-size: 16px;
 }
 
 .cyber-input :deep(.el-input__inner)::placeholder {
-  color: rgba(127, 140, 141, 0.5);
+  color: rgba(211, 84, 0, 0.5);
 }
 
 /* 状态显示区 */
@@ -735,24 +736,26 @@ onUnmounted(() => {
 }
 
 .status-item {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(127, 140, 141, 0.3);
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid rgba(230, 126, 34, 0.2);
   border-radius: 12px;
   padding: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 10px;
+  box-shadow: 0 4px 12px rgba(230, 126, 34, 0.1);
 }
 
 .status-icon {
   font-size: 24px;
-  color: #7f8c8d;
+  color: #e67e22;
 }
 
 .status-label {
   font-size: 14px;
-  color: #95a5a6;
+  color: #d35400;
+  font-weight: 500;
 }
 
 .status-bar {
@@ -760,7 +763,8 @@ onUnmounted(() => {
 }
 
 .status-bar :deep(.el-progress-bar__outer) {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(230, 126, 34, 0.2);
 }
 
 /* 互动按钮区 */
@@ -783,11 +787,12 @@ onUnmounted(() => {
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(230, 126, 34, 0.15);
 }
 
 .cyber-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 8px 20px rgba(230, 126, 34, 0.25);
 }
 
 .cyber-btn:disabled {
@@ -808,14 +813,15 @@ onUnmounted(() => {
 
 .message-text {
   display: inline-block;
-  background: linear-gradient(135deg, rgba(127, 140, 141, 0.2), rgba(149, 165, 166, 0.2));
-  border: 2px solid rgba(127, 140, 141, 0.4);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(255, 240, 240, 0.95));
+  border: 2px solid rgba(230, 126, 34, 0.4);
   padding: 12px 25px;
   border-radius: 10px;
-  color: #7f8c8d;
+  color: #d35400;
   font-size: 18px;
   font-weight: bold;
   animation: messageAppear 0.3s ease;
+  box-shadow: 0 4px 12px rgba(230, 126, 34, 0.2);
 }
 
 @keyframes messageAppear {
@@ -831,17 +837,18 @@ onUnmounted(() => {
 
 /* 对话框 */
 .cyber-dialog :deep(.el-dialog) {
-  background: rgba(44, 62, 80, 0.95) !important;
-  border: 2px solid rgba(127, 140, 141, 0.4);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 2px solid rgba(230, 126, 34, 0.4);
+  box-shadow: 0 8px 24px rgba(230, 126, 34, 0.2);
 }
 
 .cyber-dialog :deep(.el-dialog__title) {
-  color: #7f8c8d !important;
+  color: #d35400 !important;
+  font-weight: 600;
 }
 
 .cyber-dialog :deep(.el-dialog__body) {
-  color: #ecf0f1;
+  color: #5d4037;
 }
 
 .cyber-dialog :deep(.el-table) {
@@ -853,12 +860,12 @@ onUnmounted(() => {
 }
 
 .cyber-dialog :deep(.el-table td, .el-table th) {
-  border-color: rgba(127, 140, 141, 0.3) !important;
-  color: #ecf0f1 !important;
+  border-color: rgba(230, 126, 34, 0.3) !important;
+  color: #5d4037 !important;
 }
 
 .cyber-dialog :deep(.el-table--enable-row-hover .el-table__body tr:hover > td) {
-  background: rgba(127, 140, 141, 0.1) !important;
+  background: rgba(230, 126, 34, 0.1) !important;
 }
 
 /* 响应式 */
