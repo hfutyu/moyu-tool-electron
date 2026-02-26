@@ -101,12 +101,7 @@ const configForm = reactive({
   model: ref('qwen-plus')
 })
 const fixedAnswers = new Map<string, string>([
-  ['谁是世界上最美的女人', '杏儿'],
-  ['谁最美', '杏儿'],
-  ['谁是最美', '杏儿'],
-  ['世界上最美的女人是', '杏儿'],
-  ['世界上最美的女人是谁', '杏儿'],
-  ['杏儿美不美', '美'],
+
 ])
 // 检查是否为固定问题
 const checkFixedQuestion = (question: string): string | null => {
