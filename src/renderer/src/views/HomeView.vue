@@ -71,6 +71,7 @@ const quickAccess = [
   { icon: '🔍', label: 'JSON处理', name: 'JsonConvert' },
   { icon: '⏰', label: '时间格式', name: 'TimeConvert' },
   { icon: '🧮', label: '进制转换', name: 'NumberConvert' },
+  { icon: '📝', label: '备忘录', name: 'Memo' },
   // { icon: '⚙️', label: '系统设置', path: '/settings' },
   // { icon: '❓', label: '帮助中心', path: '/help' }
 ];

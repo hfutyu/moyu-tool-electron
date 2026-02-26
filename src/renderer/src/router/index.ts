@@ -1,7 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
-import { HomeFilled, Menu, User, Document, ChatDotSquare } from '@element-plus/icons-vue'
-import { nextTick } from 'vue' // 如果使用Element Plus图标
+import { HomeFilled, Menu, User, Document, ChatDotSquare, Edit } from '@element-plus/icons-vue'
+import { nextTick } from 'vue'
 const routes = [
   {
     path: '/',
@@ -181,6 +181,16 @@ const routes = [
       title: '资源监控',
       showInMenu: true,
       icon: User,
+    }
+  },
+  {
+    path: '/memo',
+    name: 'Memo',
+    component: () => import('../views/Memo.vue'),
+    meta: {
+      title: '备忘录',
+      showInMenu: true,
+      icon: Edit,
     }
   },
   {
