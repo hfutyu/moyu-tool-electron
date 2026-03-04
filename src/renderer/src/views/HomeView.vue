@@ -101,7 +101,7 @@ const goToPage = (name: string) => {
 .welcome-banner {
   text-align: center;
   margin-bottom: 40px;
-  padding: 40px 20px;
+  padding: 10px 20px;
 }
 
 .welcome-title {
