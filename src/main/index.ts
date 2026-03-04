@@ -1,5 +1,4 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
-import os from 'os'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 // import icon from '../../resources/icon.png?asset'
@@ -72,8 +71,8 @@ app.on('window-all-closed', () => {
 function createMainWindow(): BrowserWindow {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    width: 1350,
+    height: 830,
     show: true,
     icon: join(__dirname, '../../resources/icon.ico'),
     // ...(process.platform === 'linux' ? { icon } : {}),

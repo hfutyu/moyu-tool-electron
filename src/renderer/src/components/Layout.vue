@@ -1,6 +1,6 @@
 <template>
   <el-container class="layout-container">
-    <el-aside width="220px">
+    <el-aside width="170px">
       <el-menu
         :default-active="$route.name as string"
         class="el-menu-vertical-demo soft-clear-menu"
@@ -24,7 +24,7 @@
             @click="router.back()"
             class="soft-back-button"
             :icon="ArrowLeft"
-            size="default"
+            size="small"
           >
             返回
           </el-button>
@@ -169,6 +169,7 @@ const handleMenuSelect = (index: string) => {
 }
 
 .soft-header {
+  height: 40px;
   background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(220, 220, 220, 0.5);
@@ -186,7 +187,7 @@ const handleMenuSelect = (index: string) => {
 .soft-title {
   margin: 0;
   color: #2d3748;
-  font-size: 1.4rem;
+  font-size: 1rem;
   font-weight: 500;
 }
 
