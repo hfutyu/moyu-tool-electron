@@ -180,7 +180,7 @@ const routes = [
     meta: {
       title: '资源监控',
       showInMenu: true,
-      icon: User,
+      icon: Edit,
     }
   },
   {

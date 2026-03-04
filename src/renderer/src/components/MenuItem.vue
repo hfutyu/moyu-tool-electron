@@ -1,13 +1,13 @@
 <template>
   <el-menu-item v-if="!item.children || item.children.length === 0" :index="item.index">
-    <el-icon v-if="item.icon">
+    <el-icon v-if="item.icon" class="menu-icon">
       <component :is="item.icon" />
     </el-icon>
     <span>{{ item.title }}</span>
   </el-menu-item>
   <el-sub-menu v-else :index="item.index">
     <template #title>
-      <el-icon v-if="item.icon">
+      <el-icon v-if="item.icon" class="menu-icon">
         <component :is="item.icon" />
       </el-icon>
       <span>{{ item.title }}</span>
@@ -34,3 +34,14 @@ defineProps<{
   item: MenuItem
 }>()
 </script>
+
+<style scoped>
+.menu-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+</style>

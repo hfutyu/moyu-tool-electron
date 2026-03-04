@@ -1,19 +1,29 @@
 <template>
   <el-container class="layout-container">
-    <el-aside width="170px">
-      <el-menu
-        :default-active="$route.name as string"
-        class="el-menu-vertical-demo soft-clear-menu"
-        :unique-opened="true"
-        @select="handleMenuSelect"
-        :collapse="isCollapse"
-      >
-        <menu-item
-          v-for="item in menuItems"
-          :key="item.index"
-          :item="item"
+    <el-aside width="auto">
+      <div class="aside-container">
+        <el-menu
+          :default-active="$route.name as string"
+          class="el-menu-vertical-demo soft-clear-menu"
+          :unique-opened="true"
+          @select="handleMenuSelect"
+          :collapse="isCollapse"
+        >
+          <menu-item
+            v-for="item in menuItems"
+            :key="item.index"
+            :item="item"
+          />
+        </el-menu>
+        <el-button
+          style=""
+          class="collapse-btn"
+          :icon="isCollapse ? Expand : Fold"
+          @click="toggleCollapse"
+          size="small"
+          text
         />
-      </el-menu>
+      </div>
     </el-aside>
 
     <el-container>
@@ -40,7 +50,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { computed, defineAsyncComponent, ref } from "vue";
-import { ArrowLeft } from '@element-plus/icons-vue';
+import { ArrowLeft, Expand, Fold } from '@element-plus/icons-vue';
 
 interface MenuItemData {
   index: string
@@ -53,7 +63,12 @@ interface MenuItemData {
 const MenuItem = defineAsyncComponent(() => import('./MenuItem.vue'))
 
 const router = useRouter()
-const isCollapse = ref(false) //左侧菜单展开
+const isCollapse = ref(false) //左侧菜单展开状态
+
+// 切换菜单折叠状态
+const toggleCollapse = () => {
+  isCollapse.value = !isCollapse.value
+}
 
 // 从路由配置动态生成菜单项（支持多级）
 const menuItems = computed<MenuItemData[]>(() => {
@@ -89,6 +104,38 @@ const handleMenuSelect = (index: string) => {
 </script>
 
 <style scoped>
+
+.aside-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 64px;
+}
+
+.aside-container .el-menu {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.3s ease;
+}
+
+.collapse-btn {
+  padding: 10px;
+  margin: 0;
+  color: #606266 !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: none !important;
+  border-top: 1px solid #e4e7ed;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  height: 40px;
+}
+
+.collapse-btn:hover {
+  color: #409eff;
+  background: rgba(64, 158, 255, 0.1);
+}
 
 /* 柔和返回按钮样式 */
 .soft-back-button {
@@ -141,6 +188,42 @@ const handleMenuSelect = (index: string) => {
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
   height: 100%;
   overflow: hidden;
+  width: 170px !important;
+  flex-shrink: 0;
+}
+
+/* 折叠状态宽度 */
+.soft-clear-menu:not(.el-menu--collapse) {
+  width: 170px !important;
+}
+
+.soft-clear-menu.el-menu--collapse {
+  width: 64px !important;
+}
+
+/* 统一菜单项和子菜单的图标位置 */
+.soft-clear-menu .el-menu-item,
+.soft-clear-menu .el-sub-menu__title {
+  display: flex !important;
+  align-items: center;
+  text-align: left;
+}
+
+.soft-clear-menu .el-menu-item .el-icon,
+.soft-clear-menu .el-sub-menu__title > .el-icon {
+  margin-right: 8px;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 确保图标在左边 */
+.soft-clear-menu .el-menu-item > .el-icon,
+.soft-clear-menu .el-sub-menu__title > .el-icon {
+  order: -1;
 }
 
 .soft-clear-menu .el-menu-item,
@@ -166,6 +249,15 @@ const handleMenuSelect = (index: string) => {
   color: white;
   border: 1px solid rgba(66, 153, 225, 0.3);
   box-shadow: 0 4px 6px rgba(66, 153, 225, 0.15);
+  display: flex;
+  align-items: center;
+}
+
+.soft-clear-menu .el-menu-item.is-active .el-icon,
+.soft-clear-menu .el-sub-menu.is-active > .el-sub-menu__title > .el-icon {
+  margin-right: 8px;
+  flex-shrink: 0;
+  order: -1;
 }
 
 .soft-header {
