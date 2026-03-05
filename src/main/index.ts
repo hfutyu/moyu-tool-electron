@@ -1,88 +1,102 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
+import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
-// import icon from '../../resources/icon.png?asset'
 
 let mainWindow: BrowserWindow | null = null
 
+/**
+ * 窗口最小化
+ */
+ipcMain.handle('window-minimize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (win) win.minimize()
+})
+
+/**
+ * 窗口最大化/还原切换
+ */
+ipcMain.handle('window-maximize', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (win) {
+    if (win.isMaximized()) {
+      win.unmaximize()
+      return false
+    } else {
+      win.maximize()
+      return true
+    }
+  }
+  return false
+})
+
+/**
+ * 窗口关闭
+ */
+ipcMain.handle('window-close', (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  if (win) win.close()
+})
+
+/**
+ * 通用数据读取
+ */
+ipcMain.handle('data-load', (_, fileName: string) => {
+  const filePath = getDataFilePath(fileName)
+  if (existsSync(filePath)) {
+    const data = readFileSync(filePath, 'utf-8')
+    return JSON.parse(data)
+  }
+  return null
+})
+
+/**
+ * 通用数据保存
+ */
+ipcMain.handle('data-save', (_, fileName: string, data: unknown) => {
+  const filePath = getDataFilePath(fileName)
+  writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8')
+  return true
+})
 
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
+// 应用准备就绪
 app.whenReady().then(() => {
-  // Set app user model id for windows
+  // 设置应用程序的用户模型 ID（用于 Windows）
   electronApp.setAppUserModelId('com.electron')
 
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
+  // 监听窗口创建，优化窗口快捷键
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
 
-  // IPC test
+  // IPC 测试
   ipcMain.on('ping', () => console.log('pong'))
+
+  // 创建主窗口
   mainWindow = createMainWindow()
 
-  app.on('activate', function () {
-    // On macOS, it's common to re-create a window in the app when the
-    // dock icon is clicked and there are no other windows open.
-    if (BrowserWindow.getAllWindows().length === 0) mainWindow = createMainWindow()
-  })
-  ipcMain.handle('window-minimize', (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (win) win.minimize()
-  })
-
-  ipcMain.handle('window-maximize', (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (win) {
-      if (win.isMaximized()) {
-        win.unmaximize()
-        return false
-      } else {
-        win.maximize()
-        return true
-      }
+  // macOS 应用激活处理
+  app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      mainWindow = createMainWindow()
     }
-    return false
-  })
-  ipcMain.handle('window-close', (event) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (win) win.close()
-  })
-  mainWindow.on('closed', () => {
-    // 清理相关资源
-    mainWindow = null
   })
 })
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
-app.on('window-all-closed', () => {
-  mainWindow?.show()
-  if (process.platform !== 'darwin') {
-    app.quit()
-  }
-})
-
+/**
+ * 创建主窗口
+ */
 function createMainWindow(): BrowserWindow {
-  // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  const window = new BrowserWindow({
     width: 1350,
     height: 830,
     show: true,
     icon: join(__dirname, '../../resources/icon.ico'),
-    // ...(process.platform === 'linux' ? { icon } : {}),
     autoHideMenuBar: true,
-    title:"我的应用程序",
-    titleBarStyle: 'hidden', // 或 'customButtonsOnHover' (macOS) 决定默认上边框是否展示
-    // roundedCorners: true,  // 启用圆角
-    // transparent: false,
+    title: '我的应用程序',
+    titleBarStyle: 'hidden',
     webPreferences: {
-      // devTools: false,
       webSecurity: false,
       webviewTag: true,
       preload: join(__dirname, '../preload/index.js'),
@@ -90,23 +104,42 @@ function createMainWindow(): BrowserWindow {
     }
   })
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.show()
+  window.on('ready-to-show', () => {
+    window.show()
   })
 
-  mainWindow.webContents.setWindowOpenHandler((details) => {
+  // 阻止外部链接在应用内打开，改为使用系统默认浏览器
+  window.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
   })
 
-  // HMR for renderer base on electron-vite cli.
-  // Load the remote URL for development or the local html file for production.
+  // 根据环境加载不同 URL
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
-    mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    window.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    window.loadFile(join(__dirname, '../renderer/index.html'))
   }
-  return mainWindow
+
+  window.on('closed', () => {
+    mainWindow = null
+  })
+
+  return window
 }
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
+
+
+/**
+ * 通用数据文件路径
+ */
+const getDataFilePath = (fileName: string): string => {
+  return join(app.getPath('userData'), `${fileName}.json`)
+}
+
+// 所有窗口关闭时退出（macOS 除外）
+app.on('window-all-closed', () => {
+  mainWindow?.show()
+  if (process.platform !== 'darwin') {
+    app.quit()
+  }
+})

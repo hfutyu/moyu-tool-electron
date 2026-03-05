@@ -28,6 +28,35 @@ const routes = [
     }
   },
   {
+    path: '/family',
+    name: 'family',
+    meta: {
+      title: '族谱',
+      showInMenu: true,
+      icon: Menu
+    },
+    children: [
+      {
+        path: '/members',
+        name: 'members',
+        component: () => import('../views/family/FamilyMember.vue'),
+        meta: {
+          title: '成员列表',
+          showInMenu: true,
+        }
+      },
+      {
+        path: '/graph',
+        name: 'graph',
+        component: () => import('../views/family/FamilyGraph.vue'),
+        meta: {
+          title: '关系图谱',
+          showInMenu: true,
+        }
+      }
+    ]
+  },
+  {
     path: '/cyber',
     name: 'cyber',
     meta: {
@@ -174,12 +203,12 @@ const routes = [
     ]
   },
   {
-    path: '/resource',
-    name: 'resource',
+    path: '/more',
+    name: 'more',
     component: () => import('../views/ResourceMonitor.vue'),
     meta: {
-      title: '资源监控',
-      showInMenu: true,
+      title: '更多功能',
+      showInMenu: false,
       icon: Edit,
     }
   },
