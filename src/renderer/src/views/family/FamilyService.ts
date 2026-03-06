@@ -1,4 +1,5 @@
-// 使用 window.electron 调用 IPC
+// ========== 辈分 =============
+export const digitMap = ['初', '壹','贰','叁','肆','伍','陆','柒','捌','玖'];
 
 // ========== 类型定义 ==========
 
@@ -6,16 +7,19 @@ export interface Person {
 
   id: number
 
-  generation: number //代
+  generation?: number //代
+
 
   // 基本信息
-  name: string  // 姓名
-  gender: 0 | 1 // 性别
+  name?: string  // 姓名
+  nickName?: string  // 乳名
+  gender?: 0 | 1 // 0-男 1-女性别
   birthDate?: string // 出生日期 (ISO 8601格式)
   deathDate?: string // 死亡日期 (可选)
 
   // 关系引用
   birthMarriageId?: number // 出生对应的婚姻关系节点ID (表示从哪里出生)
+  married?: number // 1已婚 0未婚
   marriageId?: number // 结婚对应的婚姻关系节点ID (表示与谁结婚)
 
   avatar?: string // 头像URL
@@ -86,6 +90,16 @@ export const saveData = async (data: FamilyData): Promise<boolean> => {
  */
 export const getPersons = async (): Promise<Person[]> => {
   const data = await loadData()
+  // 按照辈分排序
+  data.persons.sort((a,b) => {
+    if (!a.generation){
+      return -1
+    }else if (!b.generation){
+      return 1
+    }else{
+      return a.generation - b.generation
+    }
+  })
   return data.persons
 }
 

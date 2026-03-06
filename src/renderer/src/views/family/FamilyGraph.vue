@@ -205,7 +205,6 @@ const personNodes = computed((): GraphNode[] => {
         y: baseY,
         name: husband.name,
         gender: husband.gender,
-        birthDate: husband.birthDate
       })
       posMap.set(husband.id, { x: centerX - 80, y: baseY })
     }
@@ -219,7 +218,6 @@ const personNodes = computed((): GraphNode[] => {
         y: baseY,
         name: wife.name,
         gender: wife.gender,
-        birthDate: wife.birthDate
       })
       posMap.set(wife.id, { x: centerX + 80, y: baseY })
     }
@@ -247,7 +245,6 @@ const personNodes = computed((): GraphNode[] => {
             y: childY,
             name: child.name,
             gender: child.gender,
-            birthDate: child.birthDate
           })
           posMap.set(child.id, { x: childX, y: childY })
         }
@@ -267,7 +264,6 @@ const personNodes = computed((): GraphNode[] => {
       y: 50,
       name: person.name,
       gender: person.gender,
-      birthDate: person.birthDate
     })
   })
 
