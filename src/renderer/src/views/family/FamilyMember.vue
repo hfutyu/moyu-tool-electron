@@ -1,12 +1,156 @@
 <template>
   <div class="family-container">
+<!-- 结婚抽屉 -->
+    <el-drawer
+      v-model="personInfoFormVisible"
+      :title="personInfoDialogTitle"
+      direction="rtl"
+      size="350px"
+    >
+      <div class="person-info-content">
+        <!-- 个人信息卡片 -->
+        <el-card class="info-card" shadow="hover">
+          <template #header>
+            <div class="card-header">
+              <span class="card-title">个人信息</span>
+              <el-tag :type="currentPerson?.gender === 0 ? 'primary' : 'danger'" size="small">
+                {{ currentPerson?.gender === 0 ? '♂ 男' : '♀ 女' }}
+              </el-tag>
+            </div>
+          </template>
+          <div class="person-avatar-section">
+            <el-avatar :size="40" :src="currentPerson?.avatar || undefined">
+              {{ currentPerson?.name?.charAt(0) || '?' }}
+            </el-avatar>
+            <div class="person-basic-info">
+              <h3 class="person-name">{{ currentPerson?.name }}</h3>
+              <p class="person-nickname" v-if="currentPerson?.nickName">乳名：{{ currentPerson.nickName }}</p>
+              <p class="person-generation">辈分：{{ digitMap[currentPerson?.generation || 0] }}代</p>
+            </div>
+          </div>
+          <el-descriptions :column="1" border size="small">
+            <el-descriptions-item label="出生日期">
+              {{ currentPerson?.birthDate || '未知' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="婚姻状态">
+              <el-tag :type="currentPerson?.married === 1 ? 'success' : 'info'" size="small">
+                {{ currentPerson?.married === 1 ? '已婚' : '未婚' }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="简介">
+              {{ currentPerson?.remark || '暂无' }}
+            </el-descriptions-item>
+          </el-descriptions>
+        </el-card>
+
+        <!-- 伴侣信息卡片 -->
+        <el-card class="info-card" shadow="hover">
+          <template #header>
+            <div class="card-header">
+              <span class="card-title">伴侣信息</span>
+              <el-icon><Connection /></el-icon>
+            </div>
+          </template>
+          <div class="relation-item" v-if="spouse">
+            <el-avatar :size="40" :src="spouse.avatar || undefined">
+              {{ spouse.name?.charAt(0) }}
+            </el-avatar>
+            <div class="relation-info">
+              <span class="relation-name">{{ spouse.name }}</span>
+              <el-tag type="warning" size="small">{{ spouse.gender === 0 ? '丈夫' : '妻子' }}</el-tag>
+            </div>
+          </div>
+          <el-descriptions :column="1" border size="small" style="margin-top: 15px" v-if="spouse">
+            <el-descriptions-item label="结婚日期">
+              {{ currentMarriage?.marriageDate || '未知' }}
+            </el-descriptions-item>
+          </el-descriptions>
+          <el-empty v-else description="还是个单身狗" :image-size="60" />
+        </el-card>
+
+        <!-- 子女信息卡片 -->
+        <el-card class="info-card" shadow="hover">
+          <template #header>
+            <div class="card-header">
+              <span class="card-title">子女信息</span>
+              <span class="count-badge">{{ children.length }}人</span>
+            </div>
+          </template>
+          <div class="children-list" v-if="children.length > 0">
+            <div class="child-item" v-for="child in children" :key="child.id">
+              <div class="child-avatar">
+                <el-avatar :size="40" :src="child.avatar || undefined">
+                  {{ child.name?.charAt(0) }}
+                </el-avatar>
+                <el-tag :type="child.gender === 0 ? 'primary' : 'danger'" size="small" class="gender-tag">
+                  {{ child.gender === 0 ? '♂' : '♀' }}
+                </el-tag>
+              </div>
+              <div class="child-info">
+                <span class="child-name">{{ child.name }}</span>
+                <span class="child-generation">{{ digitMap[child.generation || 0] }}代</span>
+              </div>
+            </div>
+          </div>
+          <el-empty v-else description="暂无子女信息" :image-size="60" />
+        </el-card>
+
+        <!-- 父母信息卡片 -->
+        <el-card class="info-card" shadow="hover" v-if="parents.length">
+          <template #header>
+            <div class="card-header">
+              <span class="card-title">父母信息</span>
+              <el-icon><UserFilled /></el-icon>
+            </div>
+          </template>
+          <div class="relation-list">
+            <div class="relation-item" v-for="parent in parents" :key="parent.id">
+              <el-avatar :size="40" :src="parent.avatar || undefined">
+                {{ parent.name?.charAt(0) }}
+              </el-avatar>
+              <div class="relation-info">
+                <span class="relation-name">{{ parent.name }}</span>
+                <el-tag :type="parent.gender === 0 ? 'primary' : 'danger'" size="small">
+                  {{ parent.gender === 0 ? '父亲' : '母亲' }}
+                </el-tag>
+              </div>
+            </div>
+          </div>
+        </el-card>
+
+        <!-- 兄弟姐妹卡片 -->
+        <el-card class="info-card" shadow="hover" v-if="siblings.length > 0">
+          <template #header>
+            <div class="card-header">
+              <span class="card-title">兄弟姐妹</span>
+              <span class="count-badge">{{ siblings.length }}人</span>
+            </div>
+          </template>
+          <div class="avatar-stack">
+            <el-tooltip
+              v-for="sibling in siblings"
+              :key="sibling.id"
+              :content="sibling.name"
+              placement="top"
+            >
+              <el-avatar :size="45" :src="sibling.avatar || undefined" class="stacked-avatar">
+                {{ sibling.name?.charAt(0) }}
+              </el-avatar>
+            </el-tooltip>
+          </div>
+        </el-card>
+
+      </div>
+    </el-drawer>
+<!--    生育抽屉    -->
+<!--    直接新增、编辑人员弹窗   -->
     <el-dialog
       v-model="personFormVisible"
       class="custom-transition-dialog"
       :title="personDialogTitle"
       width="30%"
       transition="dialog-fade"
-      @close="resetForm"
+      @close="resetPersonForm"
       :close-on-click-modal = false
     >
       <el-form
@@ -51,10 +195,10 @@
           <el-input show-word-limit maxlength="30" v-model="personForm.remark" type="textarea" />
         </el-form-item>
         <el-form-item style="">
-          <el-button style="margin-left: 25%" type="primary" @click="submitPersonForm()">
+          <el-button style="margin-left: 30%" type="primary" @click="submitPersonForm()">
             {{personDialogTitle.slice(0,2)}}
           </el-button>
-          <el-button type="info" @click="resetForm()">关闭</el-button>
+          <el-button type="info" @click="resetPersonForm()">关闭</el-button>
         </el-form-item>
       </el-form>
     </el-dialog>
@@ -135,8 +279,8 @@
         <el-table-column fixed="right" label="行为" min-width="200">
           <template #default="scope">
             <el-button link type="primary" size="small" @click.prevent="openPersonForm(scope.row)">编辑</el-button>
-            <el-button link type="primary" size="small" @click.prevent="openMarryForm(scope.row)" :disabled="scope.row.married === 1 ">结婚</el-button>
-            <el-button link type="primary" size="small" @click.prevent="openBirthForm(scope.row)" :disabled="scope.row.married !== 1 ">生育</el-button>
+            <el-button link type="primary" size="small" @click.prevent="openPersonInfoForm(scope.row)">个人信息</el-button>
+            <el-button link type="primary" size="small" @click.prevent="openBirthForm(scope.row)">生育</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -149,6 +293,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { UserFilled, Connection } from '@element-plus/icons-vue'
 import {
   getPersons,
   getMarriages,
@@ -171,9 +316,18 @@ const personDialogTitle = ref('新增成员')
 const personFormVisible = ref(false)
 const personForm = ref<Person>({id: 0,gender:0})
 
-// // 婚姻表单
-// const marryFormVisible = ref(false)
-// const marryForm = ref({})
+// 个人信息表单
+const personInfoDialogTitle = ref('个人信息')
+const personInfoFormVisible = ref(false)
+const personInfoForm = ref({})
+
+// 抽屉详情数据
+const currentPerson = ref<Person | null>(null)
+const parents = ref<Person[]>([])
+const siblings = ref<Person[]>([]) // 兄弟姐妹
+const spouse = ref<Person | null>(null) // 配偶
+const children = ref<Person[]>([]) // 孩子
+const currentMarriage = ref<Marriage | null>(null)
 //
 // // 婚姻表单
 // const birthFormVisible = ref(false)
@@ -202,6 +356,7 @@ const openPersonForm = (person?: Person) => {
   }
   personFormVisible.value = true
 }
+// 新增编辑提交
 const submitPersonForm = async () => {
   if (!personForm.value.name) {
     alert('请输入姓名')
@@ -219,19 +374,64 @@ const submitPersonForm = async () => {
     personFormVisible.value = false
   })
 }
-// 结婚新增人员
-const openMarryForm = (person?:Person) => {
-  console.log(person)
+
+const resetPersonForm = () => {
+  personFormVisible.value = false
+  personForm.value = {id: 0,gender:0}
+}
+// 个人信息抽屉打开
+const openPersonInfoForm = (person: Person) => {
+  currentPerson.value = person
+  personInfoDialogTitle.value = (person.nickName || person.name) + ' 基本信息'
+
+  // 获取父母信息
+  if (person.birthMarriageId) {
+    const birthMarriage = marriages.value.find(m => m.id === person.birthMarriageId)
+    if (birthMarriage) {
+      parents.value = [
+        persons.value.find(p => p.id === birthMarriage.husbandId),
+        persons.value.find(p => p.id === birthMarriage.wifeId)
+      ].filter(Boolean) as Person[]
+
+      // 获取兄弟姐妹（同一父母的其他孩子，排除自己）
+      const allChildren = [...birthMarriage.childrenIds]
+      siblings.value = persons.value.filter(p =>
+        allChildren.includes(p.id) && p.id !== person.id
+      )
+    }
+  } else {
+    parents.value = []
+    siblings.value = []
+  }
+
+  // 获取伴侣信息
+  if (person.marriageId) {
+    const marriage = marriages.value.find(m => m.id === person.marriageId)
+    if (marriage) {
+      currentMarriage.value = marriage
+      spouse.value = persons.value.find(p =>
+        p.id === (marriage.husbandId === person.id ? marriage.wifeId : marriage.husbandId)
+      ) || null
+
+      // 获取子女信息
+      children.value = persons.value.filter(p =>
+        marriage.childrenIds.includes(p.id)
+      )
+    }
+  } else {
+    spouse.value = null
+    currentMarriage.value = null
+    children.value = []
+  }
+
+  personInfoFormVisible.value = true
 }
 
 // 出生新增人员
 const openBirthForm = (person?:Person) => {
   console.log(person)
 }
-const resetForm = () => {
-  personFormVisible.value = false
-  personForm.value = {id: 0,gender:0}
-}
+
 
 //
 // const savePerson = async () => {
@@ -358,5 +558,151 @@ onMounted(loadData)
   border: 1px solid rgba(163, 163, 163, 0.1);
   padding: 15px;
   border-radius: 8px;
+}
+
+/* 结婚抽屉样式 */
+.person-info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.info-card {
+  border-radius: 12px;
+}
+
+:deep(.el-card__body) {
+  padding: 12px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0 8px 0;
+}
+
+.card-title {
+  font-weight: 600;
+  color: #303133;
+  font-size: 14px;
+}
+
+.person-avatar-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.person-basic-info {
+  flex: 1;
+}
+
+.person-name {
+  margin: 0 0 2px 0;
+  font-size: 16px;
+  color: #303133;
+}
+
+.person-nickname,
+.person-generation {
+  margin: 0;
+  font-size: 12px;
+  color: #909399;
+}
+
+.relation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.relation-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  background: #f5f7fa;
+  border-radius: 6px;
+}
+
+.relation-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.relation-name {
+  font-weight: 500;
+  color: #303133;
+  font-size: 14px;
+}
+
+.count-badge {
+  background: #409eff;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.avatar-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.stacked-avatar {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.stacked-avatar:hover {
+  transform: scale(1.1);
+}
+
+.children-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.child-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+  background: #f5f7fa;
+  border-radius: 6px;
+}
+
+.child-avatar {
+  position: relative;
+}
+
+.gender-tag {
+  position: absolute;
+  bottom: -4px;
+  right: -4px;
+  font-size: 10px;
+  padding: 0 3px;
+}
+
+.child-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.child-name {
+  font-weight: 500;
+  color: #303133;
+}
+
+.child-generation {
+  font-size: 12px;
+  color: #909399;
 }
 </style>
