@@ -40,9 +40,11 @@
           </el-button>
         </div>
       </el-header>
-      <el-main class="soft-main">
-        <router-view />
-      </el-main>
+      <el-config-provider :locale="locale">
+        <el-main class="soft-main">
+          <router-view />
+        </el-main>
+      </el-config-provider>
     </el-container>
   </el-container>
 </template>
@@ -51,6 +53,7 @@
 import { useRouter } from 'vue-router'
 import { computed, defineAsyncComponent, ref } from "vue";
 import { ArrowLeft, Expand, Fold } from '@element-plus/icons-vue';
+import zhCn from "element-plus/es/locale/lang/zh-cn";
 
 interface MenuItemData {
   index: string
@@ -58,6 +61,7 @@ interface MenuItemData {
   icon?: any
   children?: MenuItemData[]
 }
+const locale = ref(zhCn)
 
 // 递归组件用于渲染菜单
 const MenuItem = defineAsyncComponent(() => import('./MenuItem.vue'))

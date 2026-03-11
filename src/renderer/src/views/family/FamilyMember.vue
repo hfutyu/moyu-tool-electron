@@ -13,24 +13,54 @@
           <template #header>
             <div class="card-header">
               <span class="card-title">个人信息</span>
-              <el-tag :type="currentPerson?.gender === 0 ? 'primary' : 'danger'" size="small">
-                {{ currentPerson?.gender === 0 ? '♂ 男' : '♀ 女' }}
-              </el-tag>
+              <el-tooltip
+                v-if="!infoEdit"
+                content="点击编辑个人信息"
+                placement="top"
+              >
+                <el-button :icon="Lock" @click="infoEdit = !infoEdit" circle/>
+              </el-tooltip>
+              <el-tooltip
+                v-else
+                content="点击保存个人信息"
+                placement="top"
+              >
+                <el-button type="success" :icon="Check" @click="infoEdit = !infoEdit" circle />
+              </el-tooltip>
             </div>
           </template>
           <div class="person-avatar-section">
             <el-avatar :size="40" :src="currentPerson?.avatar || undefined">
               {{ currentPerson?.name?.charAt(0) || '?' }}
             </el-avatar>
-            <div class="person-basic-info">
-              <h3 class="person-name">{{ currentPerson?.name }}</h3>
-              <p class="person-nickname" v-if="currentPerson?.nickName">乳名：{{ currentPerson.nickName }}</p>
+            <div class="person-basic-info" v-if="currentPerson">
+              <div class="person-name" v-if="currentPerson">
+                <span v-if="!infoEdit">{{ currentPerson?.name }}</span>
+                <el-input style="width: 70px;height: 20px" v-else v-model="currentPerson.name"></el-input>
+                <el-tag :type="currentPerson.gender === 0 ? 'primary' : 'danger'" size="small">
+                  {{ currentPerson.gender === 0 ? '♂ 男' : '♀ 女' }}
+                </el-tag>
+              </div>
+              <p class="person-nickname">乳名：
+                <span v-if="!infoEdit">{{ currentPerson.nickName }}</span>
+                <el-input class="person-nickname-input" v-else v-model="currentPerson.nickName"></el-input>
+              </p>
               <p class="person-generation">辈分：{{ digitMap[currentPerson?.generation || 0] }}代</p>
             </div>
           </div>
-          <el-descriptions :column="1" border size="small">
+          <el-descriptions v-if="currentPerson" :column="1" border size="small" label-width="65px">
             <el-descriptions-item label="出生日期">
-              {{ currentPerson?.birthDate || '未知' }}
+              <span v-if="!infoEdit"> {{ currentPerson.birthDate || '未知' }}</span>
+              <el-date-picker
+                v-else
+                :clearable="false"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                format="YYYY-MM-DD HH:mm:ss"
+                v-model="currentPerson.birthDate"
+                type="datetime"
+                placeholder="选择出生日期"
+                style="height: 20px;width: 185px;"
+              />
             </el-descriptions-item>
             <el-descriptions-item label="婚姻状态">
               <el-tag :type="currentPerson?.married === 1 ? 'success' : 'info'" size="small">
@@ -38,7 +68,8 @@
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="简介">
-              {{ currentPerson?.remark || '暂无' }}
+              <span v-if="!infoEdit">{{ currentPerson?.remark || '暂无' }}</span>
+              <el-input style="height: 20px;width: 185px;" maxlength="15" v-else v-model="currentPerson.remark"></el-input>
             </el-descriptions-item>
           </el-descriptions>
         </el-card>
@@ -48,7 +79,20 @@
           <template #header>
             <div class="card-header">
               <span class="card-title">伴侣信息</span>
-              <el-icon><Connection /></el-icon>
+              <el-tooltip
+                v-if="spouse"
+                :content="`跳转到${spouse.name}信息`"
+                placement="top"
+              >
+                <el-button :icon="Connection" circle />
+              </el-tooltip>
+              <el-tooltip
+                v-else
+                content="结伴"
+                placement="top"
+              >
+                <el-button type="success" :icon="Plus" circle />
+              </el-tooltip>
             </div>
           </template>
           <div class="relation-item" v-if="spouse">
@@ -65,7 +109,7 @@
               {{ currentMarriage?.marriageDate || '未知' }}
             </el-descriptions-item>
           </el-descriptions>
-          <el-empty v-else description="还是个单身狗" :image-size="60" />
+          <el-empty v-else description="还是个单身狗" :image-size="24" />
         </el-card>
 
         <!-- 子女信息卡片 -->
@@ -142,7 +186,6 @@
 
       </div>
     </el-drawer>
-<!--    生育抽屉    -->
 <!--    直接新增、编辑人员弹窗   -->
     <el-dialog
       v-model="personFormVisible"
@@ -192,7 +235,7 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="简介">
-          <el-input show-word-limit maxlength="30" v-model="personForm.remark" type="textarea" />
+          <el-input show-word-limit maxlength="15" v-model="personForm.remark" type="textarea" />
         </el-form-item>
         <el-form-item style="">
           <el-button style="margin-left: 30%" type="primary" @click="submitPersonForm()">
@@ -211,17 +254,17 @@
         </div>
         <el-table :data="marriages">
           <!--        <el-table-column fixed prop="id" label="编号" width="150" />-->
-          <el-table-column prop="name" label="丈夫" width="120">
+          <el-table-column prop="name" label="丈夫">
             <template #default="scope">
               {{ getPersonName(scope.row.husbandId) }}
             </template>
           </el-table-column>
-          <el-table-column prop="gender" label="妻子" width="120">
+          <el-table-column prop="gender" label="妻子">
             <template #default="scope">
               {{ getPersonName(scope.row.wifeId) }}
             </template>
           </el-table-column>
-          <el-table-column prop="married" label="结婚日" width="120" />
+          <el-table-column prop="married" label="结婚日"/>
         </el-table>
       </el-col>
     </el-row>
@@ -239,7 +282,7 @@
       </div>
       <el-table
         :data = "persons"
-        max-height="350px"
+        max-height="400px"
         :cell-style="{ textAlign: 'center' }"
         :header-cell-style="{ 'text-align': 'center' }">
         <el-table-column fixed prop="generation" label="辈分" width="120">
@@ -275,17 +318,16 @@
           </template>
         </el-table-column>
         <el-table-column prop="birthDate" label="出生日期" width="200" />
-        <el-table-column prop="remark" label="简介" width="200" />
-        <el-table-column fixed="right" label="行为" min-width="200">
+        <el-table-column prop="remark" label="简介" />
+        <el-table-column fixed="right" label="行为" width="150">
           <template #default="scope">
             <el-button link type="primary" size="small" @click.prevent="openPersonForm(scope.row)">编辑</el-button>
             <el-button link type="primary" size="small" @click.prevent="openPersonInfoForm(scope.row)">个人信息</el-button>
-            <el-button link type="primary" size="small" @click.prevent="openBirthForm(scope.row)">生育</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-row>
-    <div>
+    <div style="height: 20px;width: 20px;">
 <!--      不要同 不要兄弟结合姐妹 不要未婚领养-->
     </div>
   </div>
@@ -293,7 +335,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { UserFilled, Connection } from '@element-plus/icons-vue'
+import { UserFilled, Connection, Lock, Check, Plus } from '@element-plus/icons-vue'
 import {
   getPersons,
   getMarriages,
@@ -319,7 +361,6 @@ const personForm = ref<Person>({id: 0,gender:0})
 // 个人信息表单
 const personInfoDialogTitle = ref('个人信息')
 const personInfoFormVisible = ref(false)
-const personInfoForm = ref({})
 
 // 抽屉详情数据
 const currentPerson = ref<Person | null>(null)
@@ -328,10 +369,8 @@ const siblings = ref<Person[]>([]) // 兄弟姐妹
 const spouse = ref<Person | null>(null) // 配偶
 const children = ref<Person[]>([]) // 孩子
 const currentMarriage = ref<Marriage | null>(null)
-//
-// // 婚姻表单
-// const birthFormVisible = ref(false)
-// const birthForm = ref({})
+
+const infoEdit = ref(false)
 
 // //加载数据
 const loadData = async () => {
@@ -381,6 +420,7 @@ const resetPersonForm = () => {
 }
 // 个人信息抽屉打开
 const openPersonInfoForm = (person: Person) => {
+  infoEdit.value = false
   currentPerson.value = person
   personInfoDialogTitle.value = (person.nickName || person.name) + ' 基本信息'
 
@@ -427,10 +467,6 @@ const openPersonInfoForm = (person: Person) => {
   personInfoFormVisible.value = true
 }
 
-// 出生新增人员
-const openBirthForm = (person?:Person) => {
-  console.log(person)
-}
 
 
 //
@@ -579,9 +615,10 @@ onMounted(loadData)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 0 8px 0;
 }
-
+:deep(.el-card__header) {
+  padding: 10px 12px;
+}
 .card-title {
   font-weight: 600;
   color: #303133;
@@ -704,5 +741,12 @@ onMounted(loadData)
 .child-generation {
   font-size: 12px;
   color: #909399;
+}
+.person-nickname-input{
+  width: 70px;
+  height: 12px;
+}
+.person-nickname-input >>> .el-input__inner{
+  font-size:11px;
 }
 </style>
