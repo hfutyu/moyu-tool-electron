@@ -373,7 +373,7 @@ const getPersonName = (id: number) => {
  * 获取所有孩子的姓名
  * @param ids - 孩子ID数组
  */
-const getChildrenNames = (ids: number[]) => {
+const getChildrenNames = (ids?: number[]) => {
   if (!ids || ids.length === 0) return '无'
   return ids.map(id => getPersonName(id)).join(', ')
 }

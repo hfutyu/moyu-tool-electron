@@ -7,11 +7,11 @@ export interface Person {
 
   id: number
 
-  generation?: number //代
+  generation: number //代
 
 
   // 基本信息
-  name?: string  // 姓名
+  name: string  // 姓名
   nickName?: string  // 乳名
   gender?: 0 | 1 // 0-男 1-女性别
   birthDate?: string // 出生日期 (ISO 8601格式)
@@ -19,7 +19,7 @@ export interface Person {
 
   // 关系引用
   birthMarriageId?: number // 出生对应的婚姻关系节点ID (表示从哪里出生)
-  married?: number // 1已婚 0未婚
+  married?: number // 1已婚 其他 未婚
   marriageId?: number // 结婚对应的婚姻关系节点ID (表示与谁结婚)
 
   avatar?: string // 头像URL
@@ -32,13 +32,13 @@ export interface Marriage {
   generation: number //代
 
   // 婚姻信息
-  marriageDate?: string // 结婚日期
+  marriageDate: string // 结婚日期
   divorceDate?: string // 离婚日期 (可选)
 
   // 夫妻双方孩子 - 引用人物节点ID
   husbandId: number // 丈夫
   wifeId: number  // 妻子
-  childrenIds: number[] // 从这段婚姻中生育的人物节点列表
+  childrenIds?: number[] // 从这段婚姻中生育的人物节点列表
 }
 
 export interface FamilyData {

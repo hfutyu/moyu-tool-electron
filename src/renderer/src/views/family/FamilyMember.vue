@@ -6,6 +6,7 @@
       :title="personInfoDialogTitle"
       direction="rtl"
       size="350px"
+      @close="loadData"
     >
       <div class="person-info-content">
         <!-- 个人信息卡片 -->
@@ -25,7 +26,7 @@
                 content="点击保存个人信息"
                 placement="top"
               >
-                <el-button type="success" :icon="Check" @click="infoEdit = !infoEdit" circle />
+                <el-button type="success" :icon="Check" @click="infoSaveSelfClick" circle />
               </el-tooltip>
             </div>
           </template>
@@ -91,7 +92,7 @@
                 content="结伴"
                 placement="top"
               >
-                <el-button type="success" :icon="Plus" circle />
+                <el-button type="success" :icon="Plus" @click="openPersonForm(undefined)" circle />
               </el-tooltip>
             </div>
           </template>
@@ -117,7 +118,14 @@
           <template #header>
             <div class="card-header">
               <span class="card-title">子女信息</span>
-              <span class="count-badge">{{ children.length }}人</span>
+              <span class="count-badge">{{ children.length }}人
+                 <el-tooltip
+                   content="生育"
+                   placement="top"
+                 >
+                  <el-button class="add-child-btn" :icon="Plus" @click="openPersonForm(undefined)" circle></el-button>
+                 </el-tooltip>
+              </span>
             </div>
           </template>
           <div class="children-list" v-if="children.length > 0">
@@ -134,6 +142,14 @@
                 <span class="child-name">{{ child.name }}</span>
                 <span class="child-generation">{{ digitMap[child.generation || 0] }}代</span>
               </div>
+              <div style="width: 40%;"></div>
+              <el-tooltip
+                :content="`跳转到${child.name}信息`"
+                placement="top"
+              >
+                <el-button
+                  :icon="Connection" circle />
+              </el-tooltip>
             </div>
           </div>
           <el-empty v-else description="暂无子女信息" :image-size="60" />
@@ -158,6 +174,14 @@
                   {{ parent.gender === 0 ? '父亲' : '母亲' }}
                 </el-tag>
               </div>
+              <div style="width: 40%;"></div>
+              <el-tooltip
+                :content="`跳转到${parent.name}信息`"
+                placement="top"
+              >
+                <el-button
+                  :icon="Connection" circle />
+              </el-tooltip>
             </div>
           </div>
         </el-card>
@@ -190,7 +214,7 @@
     <el-dialog
       v-model="personFormVisible"
       class="custom-transition-dialog"
-      :title="personDialogTitle"
+      :title="personDialogTitleEnum[personDialogTitle]"
       width="30%"
       transition="dialog-fade"
       @close="resetPersonForm"
@@ -227,8 +251,19 @@
           />
         </el-form-item>
 
+        <el-form-item v-if="personDialogTitle === 2" label="结婚日期" label-position="top">
+          <el-date-picker
+            value-format="YYYY-MM-DD HH:mm:ss"
+            format="YYYY-MM-DD HH:mm:ss"
+            v-model="marriageForm.marriageDate"
+            type="datetime"
+            placeholder="选择结婚日期"
+            style="width: 100%"
+          />
+        </el-form-item>
+
         <el-form-item label="性别" label-position="top">
-          <el-radio-group v-model="personForm.gender" :disabled="personDialogTitle.slice(0,2) === '编辑'">
+          <el-radio-group v-model="personForm.gender" :disabled="personDialogTitle === 0||personDialogTitle === 2">
             <el-radio :value="0" border>男</el-radio>
             <el-radio :value="1" border>女</el-radio>
             <el-radio value="10086" border disabled>同</el-radio>
@@ -239,7 +274,7 @@
         </el-form-item>
         <el-form-item style="">
           <el-button style="margin-left: 30%" type="primary" @click="submitPersonForm()">
-            {{personDialogTitle.slice(0,2)}}
+            {{personDialogTitleEnum[personDialogTitle].slice(0,2)}}
           </el-button>
           <el-button type="info" @click="resetPersonForm()">关闭</el-button>
         </el-form-item>
@@ -336,6 +371,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { UserFilled, Connection, Lock, Check, Plus } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getPersons,
   getMarriages,
@@ -354,21 +390,25 @@ const persons = ref<Person[]>([])
 const marriages = ref<Marriage[]>([])
 
 // 成员表单
-const personDialogTitle = ref('新增成员')
+const personDialogTitleEnum =ref<string[]>([
+  '编辑成员','新增成员','新增结婚对象','新增孩子'
+])
+const personDialogTitle = ref(1)
 const personFormVisible = ref(false)
-const personForm = ref<Person>({id: 0,gender:0})
+const personForm = ref<Person>({ name: '', generation: 0, id: 0,gender:0})
+const marriageForm = ref<Marriage>({ marriageDate: '', generation: 0, childrenIds: [], husbandId: 0, wifeId: 0, id: 0})
 
 // 个人信息表单
 const personInfoDialogTitle = ref('个人信息')
 const personInfoFormVisible = ref(false)
 
 // 抽屉详情数据
-const currentPerson = ref<Person | null>(null)
+const currentPerson = ref<Person | undefined>(undefined)
 const parents = ref<Person[]>([])
 const siblings = ref<Person[]>([]) // 兄弟姐妹
 const spouse = ref<Person | null>(null) // 配偶
 const children = ref<Person[]>([]) // 孩子
-const currentMarriage = ref<Marriage | null>(null)
+const currentMarriage = ref<Marriage | undefined>(undefined)
 
 const infoEdit = ref(false)
 
@@ -386,28 +426,56 @@ const getPersonName = (id: number) => {
 // 成员操作
 // 编辑新增
 const openPersonForm = (person?: Person) => {
+  resetFormData()
   if (person) { // 编辑
-    personDialogTitle.value = '编辑成员'
+    personDialogTitle.value = 0
     personForm.value = person
   } else { // 新增
-    personDialogTitle.value = '新增成员'
-    personForm.value = {id: 0,gender:0}
+    if (marriedPerson){//currentPerson
+      // 结婚
+
+
+      // nextMarriageId和nextPersonId递增
+      personDialogTitle.value = 2
+      // 新增对象的代 性别 提交时其他字段插入
+      personForm.value.gender = marriedPerson.gender === 0?1:0
+
+      // 所选对象的已婚关系修改 提交时marriageId nextMarriageId修改
+      marriedPerson.married = 1
+
+      // 婚姻关系 所选对象id 代 提交时新增对象id nextPersonId修改
+      marriageForm.value.generation = marriedPerson.generation
+      if (marriedPerson.gender === 0){
+        marriageForm.value.husbandId = marriedPerson.id
+      }else{
+        marriageForm.value.wifeId = marriedPerson.id
+      }
+    }else if(marriage){//currentMarriage
+      personDialogTitle.value = 3
+      // 生子
+    }else{
+      // 新增祖辈
+      personDialogTitle.value = 1
+      personForm.value = { name: '', id: 0,gender:0,generation: 0,married: 0}
+    }
   }
+
   personFormVisible.value = true
 }
 // 新增编辑提交
 const submitPersonForm = async () => {
   if (!personForm.value.name) {
-    alert('请输入姓名')
+    alert('姓名不为空')
     return
   }
-  if (personForm.value.id !== 0) {
-    // 编辑
+  if(personDialogTitle.value === 0){ // 编辑
     await updatePerson(personForm.value.id,personForm.value)
-  } else {
-    // 新增祖辈
-    personForm.value.generation = 0
+  }else if(personDialogTitle.value === 1){ // 新增
     await addPerson(personForm.value)
+  }else if(personDialogTitle.value === 2){ // 结婚
+
+  }else if (personDialogTitle.value === 3){ // 生子
+
   }
   await loadData().then(()=>{
     personFormVisible.value = false
@@ -416,7 +484,37 @@ const submitPersonForm = async () => {
 
 const resetPersonForm = () => {
   personFormVisible.value = false
-  personForm.value = {id: 0,gender:0}
+  resetFormData()
+}
+
+const resetFormData = () => {
+  personForm.value = { name: '', generation: 0, id: 0,gender:0}
+  marriageForm.value ={ marriageDate: '', generation: 0, childrenIds: [], husbandId: 0, wifeId: 0, id: 0}
+}
+
+// 个人信息保存个人
+const infoSaveSelfClick = () => {
+  ElMessageBox.confirm(
+    '确定将修改数据提交？',
+    '确认修改',
+    {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'success',
+    }
+  )
+    .then( async () => {
+      infoEdit.value = false
+      if (currentPerson.value){
+        await updatePerson(currentPerson.value.id,currentPerson.value)
+      }
+    })
+    .catch(() => {
+      ElMessage({
+        type: 'info',
+        message: '取消',
+      })
+    })
 }
 // 个人信息抽屉打开
 const openPersonInfoForm = (person: Person) => {
@@ -434,7 +532,7 @@ const openPersonInfoForm = (person: Person) => {
       ].filter(Boolean) as Person[]
 
       // 获取兄弟姐妹（同一父母的其他孩子，排除自己）
-      const allChildren = [...birthMarriage.childrenIds]
+      const allChildren = birthMarriage.childrenIds?[...birthMarriage.childrenIds]:[]
       siblings.value = persons.value.filter(p =>
         allChildren.includes(p.id) && p.id !== person.id
       )
@@ -455,12 +553,12 @@ const openPersonInfoForm = (person: Person) => {
 
       // 获取子女信息
       children.value = persons.value.filter(p =>
-        marriage.childrenIds.includes(p.id)
+        marriage.childrenIds?.includes(p.id)
       )
     }
   } else {
     spouse.value = null
-    currentMarriage.value = null
+    currentMarriage.value = undefined
     children.value = []
   }
 
@@ -683,7 +781,7 @@ onMounted(loadData)
   color: white;
   padding: 2px 8px;
   border-radius: 10px;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .avatar-stack {
@@ -748,5 +846,12 @@ onMounted(loadData)
 }
 .person-nickname-input >>> .el-input__inner{
   font-size:11px;
+}
+.add-child-btn{
+  padding-bottom: 10px;
+  background-color: rgba(255,255,255,0);
+  height: 10px;width: 1px;
+  border-color: rgba(255,255,255,0);
+  color: white
 }
 </style>
