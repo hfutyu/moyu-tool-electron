@@ -123,7 +123,7 @@
                    content="生育"
                    placement="top"
                  >
-                  <el-button class="add-child-btn" :icon="Plus" @click="openPersonForm(undefined, 3)" circle></el-button>
+                  <el-button :disabled="!spouse" class="add-child-btn" :icon="Plus" @click="openPersonForm(undefined, 3)" circle></el-button>
                  </el-tooltip>
               </span>
             </div>
@@ -381,7 +381,7 @@ import {
   updatePerson,
   marriageAddPerson,
   type Person,
-  type Marriage, digitMap
+  type Marriage, digitMap, addChild
 } from './FamilyService'
 
 // 数据
@@ -440,6 +440,8 @@ const openPersonForm = (person?: Person, type: number = 1) => {
     personForm.value.gender = currentPerson.value.gender === 0?1:0
   }else if(type === 3 && currentMarriage.value){
     // 生子
+    // 新增人员 代 birthMarriageId 关系新增孩子id
+    personDialogTitle.value = 3
   }
   personFormVisible.value = true
 }
@@ -455,8 +457,8 @@ const submitPersonForm = async () => {
     await addPerson(personForm.value)
   }else if(personDialogTitle.value === 2){ // 结婚
     await marriageAddPerson(currentPerson.value.id,personForm.value,marriageForm.value)
-  }else if (personDialogTitle.value === 3){ // 生子
-
+  }else if (personDialogTitle.value === 3 && currentMarriage.value){ // 生子
+    await addChild(currentMarriage.value.id,personForm.value)
   }
   await loadData().then(()=>{
     personFormVisible.value = false

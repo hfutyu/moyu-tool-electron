@@ -174,3 +174,19 @@ export const marriageAddPerson = async (curPersonId: number, newPerson:Person, n
   data.persons.push(newPerson)
   await saveData(data)
 }
+
+// 关系产生下级
+export const addChild = async(curMarriageId: number, newPerson: Person) => {
+  const data = await loadData()
+  data.nextMarriageId++
+  data.nextPersonId++
+  const index = data.marriages.findIndex((m) => m.id === curMarriageId)
+  const marriage = data.marriages[index]
+  marriage.childrenIds?.push(data.nextPersonId)
+
+  newPerson.generation = marriage.generation
+  newPerson.id = data.nextPersonId
+  newPerson.birthMarriageId = curMarriageId
+  data.persons.push(newPerson)
+  await saveData(data)
+}
