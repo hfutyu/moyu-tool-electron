@@ -92,7 +92,7 @@
                 content="结伴"
                 placement="top"
               >
-                <el-button type="success" :icon="Plus" @click="openPersonForm(undefined)" circle />
+                <el-button type="success" :icon="Plus" @click="openPersonForm(undefined, 2)" circle />
               </el-tooltip>
             </div>
           </template>
@@ -123,7 +123,7 @@
                    content="生育"
                    placement="top"
                  >
-                  <el-button class="add-child-btn" :icon="Plus" @click="openPersonForm(undefined)" circle></el-button>
+                  <el-button class="add-child-btn" :icon="Plus" @click="openPersonForm(undefined, 3)" circle></el-button>
                  </el-tooltip>
               </span>
             </div>
@@ -250,7 +250,6 @@
             style="width: 100%"
           />
         </el-form-item>
-
         <el-form-item v-if="personDialogTitle === 2" label="结婚日期" label-position="top">
           <el-date-picker
             value-format="YYYY-MM-DD HH:mm:ss"
@@ -285,9 +284,12 @@
       <el-col :span="16" class="col-card">统计看板</el-col>
       <el-col :span="8" class="col-card">
         <div class="panel-header">
-          <h3>良缘列表</h3>
+          <h3>关系列表</h3>
         </div>
-        <el-table :data="marriages">
+        <el-table
+          :data="marriages"
+          :cell-style="{ textAlign: 'center' }"
+          :header-cell-style="{ 'text-align': 'center' }">>
           <!--        <el-table-column fixed prop="id" label="编号" width="150" />-->
           <el-table-column prop="name" label="丈夫">
             <template #default="scope">
@@ -299,7 +301,7 @@
               {{ getPersonName(scope.row.wifeId) }}
             </template>
           </el-table-column>
-          <el-table-column prop="married" label="结婚日"/>
+          <el-table-column prop="marriageDate" label="结婚日" width="160"/>
         </el-table>
       </el-col>
     </el-row>
@@ -312,7 +314,7 @@
           content="只有无上级关系的祖辈节点从此处增加，其他节点由生育或结婚增加"
           placement="top-start"
         >
-          <el-button type="success" @click="openPersonForm()">+ 添加祖辈</el-button>
+          <el-button type="success" @click="openPersonForm(undefined,1)">+ 添加祖辈</el-button>
         </el-tooltip>
       </div>
       <el-table
@@ -356,7 +358,7 @@
         <el-table-column prop="remark" label="简介" />
         <el-table-column fixed="right" label="行为" width="150">
           <template #default="scope">
-            <el-button link type="primary" size="small" @click.prevent="openPersonForm(scope.row)">编辑</el-button>
+            <el-button link type="primary" size="small" @click.prevent="openPersonForm(scope.row, 0)">编辑</el-button>
             <el-button link type="primary" size="small" @click.prevent="openPersonInfoForm(scope.row)">个人信息</el-button>
           </template>
         </el-table-column>
@@ -377,10 +379,7 @@ import {
   getMarriages,
   addPerson,
   updatePerson,
-  // deletePerson,
-  // addMarriage,
-  // updateMarriage,
-  // deleteMarriage,
+  marriageAddPerson,
   type Person,
   type Marriage, digitMap
 } from './FamilyService'
@@ -393,7 +392,7 @@ const marriages = ref<Marriage[]>([])
 const personDialogTitleEnum =ref<string[]>([
   '编辑成员','新增成员','新增结婚对象','新增孩子'
 ])
-const personDialogTitle = ref(1)
+const personDialogTitle = ref<number>(1)
 const personFormVisible = ref(false)
 const personForm = ref<Person>({ name: '', generation: 0, id: 0,gender:0})
 const marriageForm = ref<Marriage>({ marriageDate: '', generation: 0, childrenIds: [], husbandId: 0, wifeId: 0, id: 0})
@@ -403,7 +402,7 @@ const personInfoDialogTitle = ref('个人信息')
 const personInfoFormVisible = ref(false)
 
 // 抽屉详情数据
-const currentPerson = ref<Person | undefined>(undefined)
+const currentPerson = ref<Person>({ generation: 0, id: 0, name: '' })
 const parents = ref<Person[]>([])
 const siblings = ref<Person[]>([]) // 兄弟姐妹
 const spouse = ref<Person | null>(null) // 配偶
@@ -425,41 +424,23 @@ const getPersonName = (id: number) => {
 
 // 成员操作
 // 编辑新增
-const openPersonForm = (person?: Person) => {
+const openPersonForm = (person?: Person, type: number = 1) => {
+  personDialogTitle.value = type
   resetFormData()
-  if (person) { // 编辑
-    personDialogTitle.value = 0
+
+  if (type === 0 && person){
     personForm.value = person
-  } else { // 新增
-    if (marriedPerson){//currentPerson
-      // 结婚
-
-
-      // nextMarriageId和nextPersonId递增
-      personDialogTitle.value = 2
-      // 新增对象的代 性别 提交时其他字段插入
-      personForm.value.gender = marriedPerson.gender === 0?1:0
-
-      // 所选对象的已婚关系修改 提交时marriageId nextMarriageId修改
-      marriedPerson.married = 1
-
-      // 婚姻关系 所选对象id 代 提交时新增对象id nextPersonId修改
-      marriageForm.value.generation = marriedPerson.generation
-      if (marriedPerson.gender === 0){
-        marriageForm.value.husbandId = marriedPerson.id
-      }else{
-        marriageForm.value.wifeId = marriedPerson.id
-      }
-    }else if(marriage){//currentMarriage
-      personDialogTitle.value = 3
-      // 生子
-    }else{
-      // 新增祖辈
-      personDialogTitle.value = 1
-      personForm.value = { name: '', id: 0,gender:0,generation: 0,married: 0}
-    }
+  }else if(type === 1){
+    // 新增祖辈
+    personDialogTitle.value = 1
+    personForm.value = { name: '', id: 0,gender:0,generation: 0,married: 0}
+  }else if(type === 2 && currentPerson.value){
+    // 结婚
+    personDialogTitle.value = 2
+    personForm.value.gender = currentPerson.value.gender === 0?1:0
+  }else if(type === 3 && currentMarriage.value){
+    // 生子
   }
-
   personFormVisible.value = true
 }
 // 新增编辑提交
@@ -473,12 +454,13 @@ const submitPersonForm = async () => {
   }else if(personDialogTitle.value === 1){ // 新增
     await addPerson(personForm.value)
   }else if(personDialogTitle.value === 2){ // 结婚
-
+    await marriageAddPerson(currentPerson.value.id,personForm.value,marriageForm.value)
   }else if (personDialogTitle.value === 3){ // 生子
 
   }
   await loadData().then(()=>{
     personFormVisible.value = false
+    personInfoFormVisible.value = false
   })
 }
 
@@ -564,95 +546,6 @@ const openPersonInfoForm = (person: Person) => {
 
   personInfoFormVisible.value = true
 }
-
-
-
-//
-// const savePerson = async () => {
-//   if (!personForm.value.name) {
-//     alert('请输入姓名')
-//     return
-//   }
-//   if (editingPerson.value) {
-//     await updatePerson(personForm.value)
-//   } else {
-//     const newPerson = await addPerson(personForm.value)
-//
-//     // 如果是从婚姻表单新建的孩子，添加到婚姻中
-//     if (fromMarriageId.value && editingMarriage.value) {
-//       const marriage = marriages.value.find(m => m.id === editingMarriage.value?.id)
-//       if (marriage) {
-//         const updatedMarriage = JSON.parse(JSON.stringify(marriage))
-//         updatedMarriage.childrenIds.push(newPerson.id)
-//         await updateMarriage(marriage.id, updatedMarriage)
-//       }
-//     } else if (fromMarriageId.value) {
-//       // 新建婚姻时创建的孩子
-//       marriageForm.value.childrenIds.push(newPerson.id)
-//     }
-//   }
-//   personFormVisible.value = false
-//   fromMarriageId.value = null
-//   loadData()
-// }
-//
-// const handleDeletePerson = async (id: number) => {
-//   if (confirm('确定删除该成员？')) {
-//     await deletePerson(id)
-//     loadData()
-//   }
-// }
-//
-// // 关系操作
-// const openMarriageForm = (marriage?: Marriage) => {
-//   if (marriage) {
-//     editingMarriage.value = marriage
-//     marriageForm.value = {
-//       husbandId: marriage.husbandId,
-//       wifeId: marriage.wifeId,
-//       marriageDate: marriage.marriageDate || '',
-//       childrenIds: [...(marriage.childrenIds || [])]
-//     }
-//   } else {
-//     editingMarriage.value = null
-//     marriageForm.value = {
-//       husbandId: 0,
-//       wifeId: 0,
-//       marriageDate: '',
-//       childrenIds: []
-//     }
-//   }
-//   selectedChildId.value = 0
-//   marriageFormVisible.value = true
-// }
-//
-// const saveMarriage = async () => {
-//   if (!marriageForm.value.husbandId || !marriageForm.value.wifeId) {
-//     alert('请选择丈夫和妻子')
-//     return
-//   }
-//   if (marriageForm.value.husbandId === marriageForm.value.wifeId) {
-//     alert('丈夫和妻子不能是同一个人')
-//     return
-//   }
-//   if (editingMarriage.value) {
-//     // 转换为普通对象，避免 IPC 序列化失败
-//     const formData = JSON.parse(JSON.stringify(marriageForm.value))
-//     await updateMarriage(editingMarriage.value.id, formData)
-//   } else {
-//     const formData = JSON.parse(JSON.stringify(marriageForm.value))
-//     await addMarriage(formData)
-//   }
-//   marriageFormVisible.value = false
-//   loadData()
-// }
-//
-// const handleDeleteMarriage = async (id: number) => {
-//   if (confirm('确定删除该关系？')) {
-//     await deleteMarriage(id)
-//     loadData()
-//   }
-// }
 
 onMounted(loadData)
 </script>

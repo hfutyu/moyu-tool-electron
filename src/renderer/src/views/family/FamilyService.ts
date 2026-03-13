@@ -79,7 +79,7 @@ export const loadData = async (): Promise<FamilyData> => {
  * 保存数据
  */
 export const saveData = async (data: FamilyData): Promise<boolean> => {
-  return await (window as any).electron.ipcRenderer.invoke('data-save', FILE_NAME, data)
+  return await (window as any).electron.ipcRenderer.invoke('data-save', FILE_NAME, JSON.parse(JSON.stringify(data)))
   // return await electronAPI.ipcRenderer.invoke('data-save', FILE_NAME, data)
 }
 
@@ -137,17 +137,6 @@ export const updatePerson = async (id: number, updates: Partial<Person>): Promis
 }
 
 /**
- * 删除成员
- */
-export const deletePerson = async (id: number): Promise<void> => {
-  const data = await loadData()
-  data.persons = data.persons.filter((p) => p.id !== id)
-  await saveData(data)
-}
-
-// ========== 关系 CRUD ==========
-
-/**
  * 获取所有关系
  */
 export const getMarriages = async (): Promise<Marriage[]> => {
@@ -157,89 +146,31 @@ export const getMarriages = async (): Promise<Marriage[]> => {
 }
 
 /**
- * 添加关系
+ * 关系新增成员 新增人 已有人
  */
-export const addMarriage = async (marriage: Omit<Marriage, 'id'>): Promise<Marriage> => {
-  // return []
+export const marriageAddPerson = async (curPersonId: number, newPerson:Person, newMarriage: Marriage) => {
   const data = await loadData()
-  const newMarriage: Marriage = { id: data.nextMarriageId++, ...marriage }
+  const curPerson = data.persons.find((p) => p.id === curPersonId)
+  if (!curPerson){
+    throw new Error('成员不存在')
+  }
+  data.nextMarriageId++
+  curPerson.married = 1
+  curPerson.marriageId = data.nextMarriageId
+  newPerson.generation = curPerson.generation
+  newPerson.id = data.nextPersonId++
+  newPerson.married = 1
+  newPerson.marriageId = data.nextMarriageId
+  newMarriage.id = data.nextMarriageId
+  newMarriage.generation = curPerson.generation
+  if (curPerson.gender === 0){
+    newMarriage.husbandId = curPersonId
+    newMarriage.wifeId = newPerson.id
+  }else{
+    newMarriage.husbandId = newPerson.id
+    newMarriage.wifeId = curPersonId
+  }
   data.marriages.push(newMarriage)
-
-  // 更新成员的婚姻关系
-  const husband = data.persons.find((p) => p.id === marriage.husbandId)
-  const wife = data.persons.find((p) => p.id === marriage.wifeId)
-  if (husband) husband.marriageId = newMarriage.id
-  if (wife) wife.marriageId = newMarriage.id
-
-  // 更新孩子的出生婚姻关系
-  if (marriage.childrenIds && marriage.childrenIds.length > 0) {
-    marriage.childrenIds.forEach((childId) => {
-      const child = data.persons.find((p) => p.id === childId)
-      if (child) child.birthMarriageId = newMarriage.id
-    })
-  }
-
-  await saveData(data)
-  return newMarriage
-}
-
-/**
- * 更新关系
- */
-export const updateMarriage = async (
-  id: number,
-  updates: Partial<Marriage>
-): Promise<Marriage> => {
-  // return {
-  //   id:1,
-  //   husbandId: 2,
-  //   wifeId:3,
-  //   childrenIds: []
-  // }
-  const data = await loadData()
-  const index = data.marriages.findIndex((m) => m.id === id)
-  if (index === -1) throw new Error('关系不存在')
-
-  // 获取更新前的孩子列表
-  const oldChildrenIds = data.marriages[index].childrenIds || []
-  const newChildrenIds = updates.childrenIds || []
-
-  // 更新婚姻关系
-  data.marriages[index] = { ...data.marriages[index], ...updates }
-
-  // 更新新增孩子的出生婚姻关系
-  const addedChildren = newChildrenIds.filter((cid) => !oldChildrenIds.includes(cid))
-  addedChildren.forEach((childId) => {
-    const child = data.persons.find((p) => p.id === childId)
-    if (child) child.birthMarriageId = id
-  })
-
-  // 清除已移除孩子的出生婚姻关系
-  const removedChildren = oldChildrenIds.filter((cid) => !newChildrenIds.includes(cid))
-  removedChildren.forEach((childId) => {
-    const child = data.persons.find((p) => p.id === childId)
-    if (child && child.birthMarriageId === id) child.birthMarriageId = undefined
-  })
-
-  await saveData(data)
-  return data.marriages[index]
-}
-
-/**
- * 删除关系
- */
-export const deleteMarriage = async (id: number): Promise<void> => {
-  const data = await loadData()
-  const marriage = data.marriages.find((m) => m.id === id)
-
-  // 清除成员的婚姻关系
-  if (marriage) {
-    const husband = data.persons.find((p) => p.id === marriage.husbandId)
-    const wife = data.persons.find((p) => p.id === marriage.wifeId)
-    if (husband) husband.marriageId = undefined
-    if (wife) wife.marriageId = undefined
-  }
-
-  data.marriages = data.marriages.filter((m) => m.id !== id)
+  data.persons.push(newPerson)
   await saveData(data)
 }
