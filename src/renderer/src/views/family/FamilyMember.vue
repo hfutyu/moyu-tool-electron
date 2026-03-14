@@ -82,10 +82,11 @@
               <span class="card-title">伴侣信息</span>
               <el-tooltip
                 v-if="spouse"
-                :content="`跳转到${spouse.name}信息`"
+                content="编辑/保存婚姻信息"
                 placement="top"
               >
-                <el-button :icon="Connection" circle />
+                <el-button v-if="!marriageEdit" :icon="Lock" @click="marriageEdit = true" circle />
+                <el-button v-else :icon="Check" type="success" @click="infoSaveMarriageClick" circle />
               </el-tooltip>
               <el-tooltip
                 v-else
@@ -105,9 +106,19 @@
               <el-tag type="warning" size="small">{{ spouse.gender === 0 ? '丈夫' : '妻子' }}</el-tag>
             </div>
           </div>
-          <el-descriptions :column="1" border size="small" style="margin-top: 15px" v-if="spouse">
+          <el-descriptions label-width="65px" :column="1" border size="small" style="margin-top: 15px" v-if="spouse && currentMarriage">
             <el-descriptions-item label="结婚日期">
-              {{ currentMarriage?.marriageDate || '未知' }}
+              <span v-if="!marriageEdit">{{ currentMarriage?.marriageDate || '未知' }}</span>
+              <el-date-picker
+                v-else
+                :clearable="false"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                format="YYYY-MM-DD HH:mm:ss"
+                v-model="currentMarriage.marriageDate"
+                type="datetime"
+                placeholder="选择结婚日期"
+                style="height: 20px;width: 185px;"
+              />
             </el-descriptions-item>
           </el-descriptions>
           <el-empty v-else description="还是个单身狗" :image-size="24" />
@@ -316,6 +327,14 @@
         >
           <el-button type="success" @click="openPersonForm(undefined,1)">+ 添加祖辈</el-button>
         </el-tooltip>
+        <el-tooltip
+          class="box-item"
+          effect="dark"
+          content="只有无上级关系的祖辈节点从此处增加，其他节点由生育或结婚增加"
+          placement="top-start"
+        >
+          <el-button type="success" @click="openPersonForm(undefined,1)">打开数据目录</el-button>
+        </el-tooltip>
       </div>
       <el-table
         :data = "persons"
@@ -381,7 +400,7 @@ import {
   updatePerson,
   marriageAddPerson,
   type Person,
-  type Marriage, digitMap, addChild
+  type Marriage, digitMap, addChild, updateMarriage
 } from './FamilyService'
 
 // 数据
@@ -410,6 +429,7 @@ const children = ref<Person[]>([]) // 孩子
 const currentMarriage = ref<Marriage | undefined>(undefined)
 
 const infoEdit = ref(false)
+const marriageEdit = ref(false)
 
 // //加载数据
 const loadData = async () => {
@@ -475,7 +495,30 @@ const resetFormData = () => {
   personForm.value = { name: '', generation: 0, id: 0,gender:0}
   marriageForm.value ={ marriageDate: '', generation: 0, childrenIds: [], husbandId: 0, wifeId: 0, id: 0}
 }
-
+// 伴侣信息保存
+const infoSaveMarriageClick = () => {
+  ElMessageBox.confirm(
+    '确定将修改数据提交？',
+    '确认修改',
+    {
+      confirmButtonText: '确认',
+      cancelButtonText: '取消',
+      type: 'success',
+    }
+  )
+    .then( async () => {
+      marriageEdit.value = false
+      if (currentMarriage.value){
+        await updateMarriage(currentMarriage.value.id,currentMarriage.value)
+      }
+    })
+    .catch(() => {
+      ElMessage({
+        type: 'info',
+        message: '取消',
+      })
+    })
+}
 // 个人信息保存个人
 const infoSaveSelfClick = () => {
   ElMessageBox.confirm(
@@ -503,6 +546,7 @@ const infoSaveSelfClick = () => {
 // 个人信息抽屉打开
 const openPersonInfoForm = (person: Person) => {
   infoEdit.value = false
+  marriageEdit.value = false
   currentPerson.value = person
   personInfoDialogTitle.value = (person.nickName || person.name) + ' 基本信息'
 

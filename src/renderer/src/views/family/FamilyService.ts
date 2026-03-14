@@ -106,17 +106,18 @@ export const getPersons = async (): Promise<Person[]> => {
 /**
  * 添加成员
  */
-export const addPerson = async (person: Omit<Person, 'id'>): Promise<Person> => {
+export const addPerson = async (person: Person): Promise<Person> => {
   // return {
   //   id:1,
   //   name  :'xx',
   //   gender: 0
   // }
   const data = await loadData()
-  const newPerson: Person = { id: data.nextPersonId++, ...person }
-  data.persons.push(newPerson)
+  person.id = data.nextPersonId
+  data.persons.push(person)
+  data.nextPersonId++
   await saveData(data)
-  return newPerson
+  return person
 }
 
 /**
@@ -134,6 +135,22 @@ export const updatePerson = async (id: number, updates: Partial<Person>): Promis
   data.persons[index] = { ...data.persons[index], ...updates }
   await saveData(data)
   return data.persons[index]
+}
+/**
+ * 更新成员
+ */
+export const updateMarriage = async (id: number, updates: Partial<Marriage>): Promise<Marriage> => {
+  // return {
+  //   id:1,
+  //   name  :'xx',
+  //   gender: 0
+  // }
+  const data = await loadData()
+  const index = data.marriages.findIndex((p) => p.id === id)
+  if (index === -1) throw new Error('关系不存在')
+  data.marriages[index] = { ...data.marriages[index], ...updates }
+  await saveData(data)
+  return data.marriages[index]
 }
 
 /**
@@ -154,11 +171,10 @@ export const marriageAddPerson = async (curPersonId: number, newPerson:Person, n
   if (!curPerson){
     throw new Error('成员不存在')
   }
-  data.nextMarriageId++
   curPerson.married = 1
   curPerson.marriageId = data.nextMarriageId
   newPerson.generation = curPerson.generation
-  newPerson.id = data.nextPersonId++
+  newPerson.id = data.nextPersonId
   newPerson.married = 1
   newPerson.marriageId = data.nextMarriageId
   newMarriage.id = data.nextMarriageId
@@ -172,14 +188,14 @@ export const marriageAddPerson = async (curPersonId: number, newPerson:Person, n
   }
   data.marriages.push(newMarriage)
   data.persons.push(newPerson)
+  data.nextMarriageId++
+  data.nextPersonId++
   await saveData(data)
 }
 
 // 关系产生下级
 export const addChild = async(curMarriageId: number, newPerson: Person) => {
   const data = await loadData()
-  data.nextMarriageId++
-  data.nextPersonId++
   const index = data.marriages.findIndex((m) => m.id === curMarriageId)
   const marriage = data.marriages[index]
   marriage.childrenIds?.push(data.nextPersonId)
@@ -188,5 +204,6 @@ export const addChild = async(curMarriageId: number, newPerson: Person) => {
   newPerson.id = data.nextPersonId
   newPerson.birthMarriageId = curMarriageId
   data.persons.push(newPerson)
+  data.nextPersonId++
   await saveData(data)
 }
