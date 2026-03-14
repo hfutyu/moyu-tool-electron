@@ -290,17 +290,50 @@
         </el-form-item>
       </el-form>
     </el-dialog>
-<!--    新增成员 无辈分 无血亲状态-->
-    <el-row class="row-card">
-      <el-col :span="16" class="col-card">统计看板</el-col>
-      <el-col :span="8" class="col-card">
+<!--   页面-->
+    <el-row style="height: 280px">
+      <el-col :span="16" class="col-card" style="display: flex; flex-direction: column;">
+        <!-- 顶部统计数字 -->
+        <div class="stats-summary">
+          <div class="stat-item">
+            <span class="stat-num">{{ stats.total }}</span>
+            <span class="stat-text">总人数</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-num">{{ stats.marriageCount }}</span>
+            <span class="stat-text">婚姻对数</span>
+          </div>
+          <div class="stat-item stat-male">
+            <span class="stat-num">{{ stats.maleCount }}</span>
+            <span class="stat-text">男性</span>
+          </div>
+          <div class="stat-item stat-female">
+            <span class="stat-num">{{ stats.femaleCount }}</span>
+            <span class="stat-text">女性</span>
+          </div>
+        </div>
+        <!-- 图表区域 -->
+        <div class="charts-container">
+          <div class="chart-box">
+            <div ref="genderChartRef" class="chart"></div>
+          </div>
+          <div class="chart-box">
+            <div ref="genChartRef" class="chart"></div>
+          </div>
+          <div class="chart-box">
+            <div ref="genSingleChartRef" class="chart"></div>
+          </div>
+        </div>
+      </el-col>
+      <el-col :span="8" class="col-card" >
         <div class="panel-header">
           <h3>关系列表</h3>
         </div>
         <el-table
+          max-height="195px"
           :data="marriages"
           :cell-style="{ textAlign: 'center' }"
-          :header-cell-style="{ 'text-align': 'center' }">>
+          :header-cell-style="{ 'text-align': 'center' }">
           <!--        <el-table-column fixed prop="id" label="编号" width="150" />-->
           <el-table-column prop="name" label="丈夫">
             <template #default="scope">
@@ -319,22 +352,16 @@
     <el-row class="row-card">
       <div class="panel-header">
         <h3>成员列表</h3>
-        <el-tooltip
-          class="box-item"
-          effect="dark"
-          content="只有无上级关系的祖辈节点从此处增加，其他节点由生育或结婚增加"
-          placement="top-start"
-        >
-          <el-button type="success" @click="openPersonForm(undefined,1)">+ 添加祖辈</el-button>
-        </el-tooltip>
-        <el-tooltip
-          class="box-item"
-          effect="dark"
-          content="只有无上级关系的祖辈节点从此处增加，其他节点由生育或结婚增加"
-          placement="top-start"
-        >
-          <el-button type="success" @click="openPersonForm(undefined,1)">打开数据目录</el-button>
-        </el-tooltip>
+        <div class="btn-group">
+          <el-tooltip
+            effect="dark"
+            content="只有无上级关系的祖辈节点从此处增加，其他节点由生育或结婚增加"
+            placement="top-start"
+          >
+            <el-button type="success" @click="openPersonForm(undefined,1)">+ 添加祖辈</el-button>
+          </el-tooltip>
+          <el-button type="primary" @click="openDataFolder">打开目录</el-button>
+        </div>
       </div>
       <el-table
         :data = "persons"
@@ -375,7 +402,7 @@
         </el-table-column>
         <el-table-column prop="birthDate" label="出生日期" width="200" />
         <el-table-column prop="remark" label="简介" />
-        <el-table-column fixed="right" label="行为" width="150">
+        <el-table-column fixed="right" label="操作" width="150">
           <template #default="scope">
             <el-button link type="primary" size="small" @click.prevent="openPersonForm(scope.row, 0)">编辑</el-button>
             <el-button link type="primary" size="small" @click.prevent="openPersonInfoForm(scope.row)">个人信息</el-button>
@@ -390,8 +417,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { UserFilled, Connection, Lock, Check, Plus } from '@element-plus/icons-vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
+import * as echarts from 'echarts'
+import { UserFilled, Connection, Lock, Check, Plus, User } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getPersons,
@@ -430,6 +458,155 @@ const currentMarriage = ref<Marriage | undefined>(undefined)
 
 const infoEdit = ref(false)
 const marriageEdit = ref(false)
+
+// ==================== 统计看板 ====================
+const stats = computed(() => {
+  const total = persons.value.length
+  const maleCount = persons.value.filter(p => p.gender === 0).length
+  const femaleCount = persons.value.filter(p => p.gender === 1).length
+  const marriedCount = persons.value.filter(p => p.married === 1).length
+
+  // 辈分统计
+  const generationStats: Record<number, { total: number; male: number; female: number; married: number }> = {}
+  persons.value.forEach(p => {
+    const gen = p.generation ?? 0
+    if (!generationStats[gen]) {
+      generationStats[gen] = { total: 0, male: 0, female: 0, married: 0 }
+    }
+    generationStats[gen].total++
+    if (p.gender === 0) generationStats[gen].male++
+    if (p.gender === 1) generationStats[gen].female++
+    if (p.married === 1) generationStats[gen].married++
+  })
+
+  const maxGen = Math.max(...Object.keys(generationStats).map(Number), 0)
+
+  return {
+    total,
+    maleCount,
+    femaleCount,
+    marriedCount,
+    malePercent: total > 0 ? Math.round((maleCount / total) * 100) : 0,
+    femalePercent: total > 0 ? Math.round((femaleCount / total) * 100) : 0,
+    marriageCount: marriages.value.length,
+    generationStats,
+    maxGen
+  }
+})
+
+// 图表 refs
+const genderChartRef = ref<HTMLDivElement>()
+const genChartRef = ref<HTMLDivElement>()
+const genSingleChartRef = ref<HTMLDivElement>()
+let genderChart: echarts.ECharts | null = null
+let genChart: echarts.ECharts | null = null
+let genSingleChart: echarts.ECharts | null = null
+
+// 初始化图表
+const initCharts = () => {
+  if (!genderChartRef.value || !genChartRef.value || !genSingleChartRef.value) return
+
+  // 性别比例饼图
+  genderChart = echarts.init(genderChartRef.value)
+  genderChart.setOption({
+    tooltip: { trigger: 'item', formatter: '{b}: {c}人 ({d}%)' },
+    legend: { bottom: '0%', left: 'center' },
+    series: [{
+      type: 'pie',
+      radius: ['40%', '70%'],
+      avoidLabelOverlap: false,
+      itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+      label: { show: false },
+      emphasis: { label: { show: true, fontSize: 14, fontWeight: 'bold' } },
+      data: [
+        { value: stats.value.maleCount, name: '男性', itemStyle: { color: '#409eff' } },
+        { value: stats.value.femaleCount, name: '女性', itemStyle: { color: '#f56c6c' } }
+      ]
+    }]
+  })
+
+  // 各代男女人数统计
+  const genLabels: string[] = []
+  const maleData: number[] = []
+  const femaleData: number[] = []
+  for (let i = 0; i <= stats.value.maxGen; i++) {
+    genLabels.push(digitMap[i] + '代')
+    maleData.push(stats.value.generationStats[i]?.male || 0)
+    femaleData.push(stats.value.generationStats[i]?.female || 0)
+  }
+
+  genChart = echarts.init(genChartRef.value)
+  genChart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { data: ['男性', '女性'], top: '0%' },
+    grid: { left: '3%', right: '4%', bottom: '3%', top: '20%', containLabel: true },
+    xAxis: { type: 'category', data: genLabels, axisTick: { alignWithLabel: true } },
+    yAxis: { type: 'value', minInterval: 1 },
+    series: [
+      {
+        name: '男性',
+        type: 'bar',
+        stack: 'gender',
+        data: maleData,
+        itemStyle: { color: '#409eff', borderRadius: [0, 0, 0, 0] },
+        barWidth: '50%'
+      },
+      {
+        name: '女性',
+        type: 'bar',
+        stack: 'gender',
+        data: femaleData,
+        itemStyle: { color: '#f56c6c', borderRadius: [4, 4, 0, 0] },
+        barWidth: '50%'
+      }
+    ]
+  })
+
+  // 各代已婚未婚人数统计
+  const marriedData: number[] = []
+  const unmarriedData: number[] = []
+  for (let i = 0; i <= stats.value.maxGen; i++) {
+    const gen = stats.value.generationStats[i]
+    const total = gen?.total || 0
+    const married = gen?.married || 0
+    marriedData.push(married)
+    unmarriedData.push(total - married)
+  }
+
+  genSingleChart = echarts.init(genSingleChartRef.value)
+  genSingleChart.setOption({
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { data: ['已婚', '未婚'], top: '0%' },
+    grid: { left: '3%', right: '4%', bottom: '3%', top: '20%', containLabel: true },
+    xAxis: { type: 'category', data: genLabels, axisTick: { alignWithLabel: true } },
+    yAxis: { type: 'value', minInterval: 1 },
+    series: [
+      {
+        name: '已婚',
+        type: 'bar',
+        stack: 'marriage',
+        data: marriedData,
+        itemStyle: { color: '#67c23a', borderRadius: [0, 0, 0, 0] },
+        barWidth: '50%'
+      },
+      {
+        name: '未婚',
+        type: 'bar',
+        stack: 'marriage',
+        data: unmarriedData,
+        itemStyle: { color: '#909399', borderRadius: [4, 4, 0, 0] },
+        barWidth: '50%'
+      }
+    ]
+  })
+}
+
+// 窗口大小变化时重绘图表
+const resizeCharts = () => {
+  genderChart?.resize()
+  genChart?.resize()
+  genSingleChart?.resize()
+}
 
 // //加载数据
 const loadData = async () => {
@@ -489,6 +666,11 @@ const submitPersonForm = async () => {
 const resetPersonForm = () => {
   personFormVisible.value = false
   resetFormData()
+}
+
+// 打开数据目录
+const openDataFolder = () => {
+  (window as any).electron.ipcRenderer.invoke('open-data-folder')
 }
 
 const resetFormData = () => {
@@ -593,7 +775,13 @@ const openPersonInfoForm = (person: Person) => {
   personInfoFormVisible.value = true
 }
 
-onMounted(loadData)
+onMounted(async () => {
+  await loadData()
+  nextTick(() => {
+    initCharts()
+    window.addEventListener('resize', resizeCharts)
+  })
+})
 </script>
 
 <style scoped>
@@ -612,6 +800,11 @@ onMounted(loadData)
   margin-bottom: 15px;
 }
 
+.panel-header .btn-group {
+  display: flex;
+  gap: 10px;
+}
+
 .panel-header h3 {
   margin: 0;
   font-size: 18px;
@@ -619,18 +812,25 @@ onMounted(loadData)
 }
 
 .row-card{
-  width: 100%;
+  margin-left: 5px;
+  margin-right: 5px;
   border: 1px solid #e0e0e0;
-  padding: 15px;
+  padding: 15px 15px;
   border-radius: 8px;
   flex: 1;
   background: #fff;
   display: flex;
 }
 .col-card{
-  border: 1px solid rgba(163, 163, 163, 0.1);
-  padding: 15px;
+  border: 1px solid #e0e0e0;
+  padding: 15px 15px;
+  width: 100%;
+  margin-bottom: 10px;
+  margin-left: 5px;
+  margin-right: 5px;
   border-radius: 8px;
+  background: #fff;
+  flex: 1;
 }
 
 /* 结婚抽屉样式 */
@@ -792,5 +992,58 @@ onMounted(loadData)
   height: 10px;width: 1px;
   border-color: rgba(255,255,255,0);
   color: white
+}
+
+/* ==================== 统计看板样式 ==================== */
+.stats-summary {
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.stat-item {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-num {
+  font-size: 24px;
+  font-weight: bold;
+  color: #303133;
+}
+
+.stat-male .stat-num {
+  color: #409eff;
+}
+
+.stat-female .stat-num {
+  color: #f56c6c;
+}
+
+.stat-text {
+  font-size: 12px;
+  color: #909399;
+}
+
+.charts-container {
+  flex: 1;
+  display: flex;
+  padding: 8px 0 0 0;
+  gap: 10px;
+  min-height: 0;
+}
+
+.chart-box {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart {
+  flex: 1;
+  min-height: 0;
 }
 </style>

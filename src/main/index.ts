@@ -59,6 +59,13 @@ ipcMain.handle('data-save', (_, fileName: string, data: unknown) => {
   return true
 })
 
+/**
+ * 打开数据目录
+ */
+ipcMain.handle('open-data-folder', () => {
+  shell.openPath(app.getPath('userData'))
+})
+
 
 // 应用准备就绪
 app.whenReady().then(() => {
@@ -90,7 +97,7 @@ app.whenReady().then(() => {
 function createMainWindow(): BrowserWindow {
   const window = new BrowserWindow({
     width: 1350,
-    height: 830,
+    height: 800,
     show: true,
     icon: join(__dirname, '../../resources/icon.ico'),
     autoHideMenuBar: true,

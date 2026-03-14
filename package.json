@@ -24,8 +24,10 @@
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "axios": "^1.13.2",
+    "echarts": "^6.0.0",
     "electron-updater": "^6.3.9",
     "element-plus": "^2.13.1",
+    "vue-echarts": "^8.0.1",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
