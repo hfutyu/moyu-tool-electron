@@ -200,7 +200,7 @@ export const addChild = async(curMarriageId: number, newPerson: Person) => {
   const marriage = data.marriages[index]
   marriage.childrenIds?.push(data.nextPersonId)
 
-  newPerson.generation = marriage.generation
+  newPerson.generation = marriage.generation + 1
   newPerson.id = data.nextPersonId
   newPerson.birthMarriageId = curMarriageId
   data.persons.push(newPerson)
