@@ -419,7 +419,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, nextTick } from 'vue'
 import * as echarts from 'echarts'
-import { UserFilled, Connection, Lock, Check, Plus, User } from '@element-plus/icons-vue'
+import { UserFilled, Connection, Lock, Check, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   getPersons,

@@ -51,7 +51,7 @@
               class="node-shape marriage"
               :class="{ selected: selectedMarriage?.id === node.id }"
             />
-            <text y="4" class="node-text">结婚</text>
+            <text y="4" class="node-text">关系</text>
           </g>
 
           <!-- 人物节点层 -->
@@ -117,7 +117,7 @@ const marriages = ref<Marriage[]>([])
 // SVG 画布的尺寸
 const viewportRef = ref<HTMLElement | null>(null)  // 获取容器DOM元素
 const svgWidth = ref(1200)    // 画布宽度
-const svgHeight = ref(800)   // 画布高度
+const svgHeight = ref(1000)   // 画布高度
 
 // 缩放比例，1表示原始大小
 const scale = ref(1)
@@ -177,94 +177,155 @@ interface Link {
  * 人物节点位置计算
  *
  * 布局规则：
- * - 每对夫妻占一行，按婚姻顺序垂直排列
- * - 丈夫在左边，婚姻在中间，妻子在右边
- * - 孩子显示在婚姻节点的下方
+ * - 同一代人（generation相同）在同一行，高度一致
+ * - 同一代的所有人物（包括有婚姻和无婚姻）统一排布，不重叠
+ * - 有婚姻的：丈夫在左，婚姻在中，妻子在右（占280宽）
+ * - 无婚姻的：单独占位（占80宽）
+ * - 孩子显示在婚姻节点的下方（下一代）
  *
- * 示例布局：
- *   丈夫 -- 婚姻 -- 妻子
- *            |
- *           孩子1  孩子2
+ * 示例布局（第1代）:
+ *   大爹  老六--婚姻--秀  二爹
  */
 const personNodes = computed((): GraphNode[] => {
   const nodes: GraphNode[] = []
-  // 用 Map 记录每个人物的位置，避免重复
   const posMap = new Map<number, { x: number; y: number }>()
 
-  // 第一步：先处理所有婚姻中的丈夫和妻子（婚姻优先）
-  marriages.value.forEach((marriage, mIndex) => {
-    const baseY = mIndex * 180 + 80
-    const centerX = 400
+  // 获取所有代数
+  const generations = [...new Set(persons.value.map(p => p.generation ?? 0))].sort((a, b) => a - b)
+  const generationYMap = new Map<number, number>()
 
-    // 丈夫
-    const husband = persons.value.find((p) => p.id === marriage.husbandId)
-    if (husband && !posMap.has(husband.id)) {
-      nodes.push({
-        id: husband.id,
-        x: centerX - 80,
-        y: baseY,
-        name: husband.name,
-        gender: husband.gender,
-      })
-      posMap.set(husband.id, { x: centerX - 80, y: baseY })
-    }
-
-    // 妻子
-    const wife = persons.value.find((p) => p.id === marriage.wifeId)
-    if (wife && !posMap.has(wife.id)) {
-      nodes.push({
-        id: wife.id,
-        x: centerX + 80,
-        y: baseY,
-        name: wife.name,
-        gender: wife.gender,
-      })
-      posMap.set(wife.id, { x: centerX + 80, y: baseY })
-    }
+  // 每一行的Y坐标
+  const rowHeight = 180
+  const startY = 80
+  generations.forEach((gen, index) => {
+    generationYMap.set(gen, startY + index * rowHeight)
   })
 
-  // 第二步：处理孩子（只处理还没有位置的人物）
-  marriages.value.forEach((marriage, mIndex) => {
-    const baseY = mIndex * 180 + 80
-    const centerX = 400
+  // 常量
+  const nodeGap = 80  // 相邻节点之间的距离
+
+  // 婚姻的代数
+  const marriageGenMap = new Map<number, number>()
+  marriages.value.forEach(m => {
+    const husband = persons.value.find(p => p.id === m.husbandId)
+    const wife = persons.value.find(p => p.id === m.wifeId)
+    marriageGenMap.set(m.id, husband?.generation ?? wife?.generation ?? 0)
+  })
+
+  // 已连接的人物
+  const connectedPersonIds = new Set<number>()
+  marriages.value.forEach(m => {
+    connectedPersonIds.add(m.husbandId)
+    connectedPersonIds.add(m.wifeId)
+  })
+
+  // 每一代的所有"槽位"：单身人物、丈夫、关系、妻子
+  // 用于计算总宽度和居中
+  interface Slot {
+    type: 'single' | 'husband' | 'marriage' | 'wife'
+    gen: number
+    personId?: number
+    marriageId?: number
+  }
+
+  const slotsByGen = new Map<number, Slot[]>()
+
+  generations.forEach(gen => {
+    const slots: Slot[] = []
+
+    // 1. 单身人物（先添加）
+    const singlePersons = persons.value.filter(p =>
+      (p.generation ?? 0) === gen && !connectedPersonIds.has(p.id)
+    )
+    singlePersons.forEach(p => {
+      slots.push({ type: 'single', gen, personId: p.id })
+    })
+
+    // 2. 有配偶的婚姻单元（后添加）：丈夫 -> 关系 -> 妻子
+    const genMarriages = marriages.value.filter(m => marriageGenMap.get(m.id) === gen)
+    genMarriages.forEach(m => {
+      // 丈夫（由上级产生的，在左）
+      slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+      // 关系节点
+      slots.push({ type: 'marriage', gen, marriageId: m.id })
+      // 妻子（结婚加入的，在右）
+      slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+    })
+
+    slotsByGen.set(gen, slots)
+  })
+
+  // 计算每一代的起始X位置（居中）
+  const genStartX = new Map<number, number>()
+  generations.forEach(gen => {
+    const slots = slotsByGen.get(gen) || []
+    const totalWidth = (slots.length - 1) * nodeGap + 80 // 80是第一个节点的起始偏移
+    genStartX.set(gen, 400 - totalWidth / 2 + 40)
+  })
+
+  // 绘制人物节点
+  generations.forEach(gen => {
+    const slots = slotsByGen.get(gen) || []
+    const baseY = generationYMap.get(gen) ?? startY
+
+    slots.forEach((slot, index) => {
+      const startX = genStartX.get(gen) ?? 400
+      const x = startX + index * nodeGap
+
+      // 单身、丈夫、妻子需要渲染人物节点
+      if (slot.type !== 'marriage' && slot.personId) {
+        const person = persons.value.find(p => p.id === slot.personId)
+        if (person && !posMap.has(person.id)) {
+          nodes.push({
+            id: person.id,
+            x: x,
+            y: baseY,
+            name: person.name,
+            gender: person.gender,
+          })
+          posMap.set(person.id, { x, y: baseY })
+        }
+      }
+    })
+  })
+
+  // 处理孩子（下一代）
+  marriages.value.forEach(marriage => {
+    const gen = marriageGenMap.get(marriage.id) ?? 0
+    const slots = slotsByGen.get(gen) || []
+
+    // 找到关系节点在这一代slots中的位置
+    const marriageSlotIndex = slots.findIndex(s => s.marriageId === marriage.id && s.type === 'marriage')
+    if (marriageSlotIndex === -1) return
+
+    const startX = genStartX.get(gen) ?? 400
+    const marriageX = startX + marriageSlotIndex * nodeGap
 
     if (marriage.childrenIds && marriage.childrenIds.length > 0) {
       const childCount = marriage.childrenIds.length
-      const childSpacing = 70
+      const childSpacing = 90
       const totalWidth = (childCount - 1) * childSpacing
 
+      // 孩子在下一行，从关系节点中心开始
+      const childGen = gen + 1
+      const childBaseY = generationYMap.get(childGen) ?? (startY + (gen + 1) * rowHeight)
+      const childStartX = marriageX + 80 / 2 - totalWidth / 2
+
       marriage.childrenIds.forEach((childId, cIndex) => {
-        const child = persons.value.find((p) => p.id === childId)
-        // 只处理还没有位置的孩子（排除已经是丈夫/妻子的人）
+        const child = persons.value.find(p => p.id === childId)
         if (child && !posMap.has(child.id)) {
-          const childX = centerX - totalWidth / 2 + cIndex * childSpacing
-          const childY = baseY + 120
+          const childX = childStartX + cIndex * childSpacing
           nodes.push({
             id: child.id,
             x: childX,
-            y: childY,
+            y: childBaseY,
             name: child.name,
             gender: child.gender,
           })
-          posMap.set(child.id, { x: childX, y: childY })
+          posMap.set(child.id, { x: childX, y: childBaseY })
         }
       })
     }
-  })
-
-  // 第三步：处理没有婚姻关系的人物
-  const connectedIds = new Set(marriages.value.flatMap(m =>
-    [m.husbandId, m.wifeId, ...(m.childrenIds || [])]
-  ))
-  const unconnected = persons.value.filter(p => !connectedIds.has(p.id))
-  unconnected.forEach((person, index) => {
-    nodes.push({
-      id: person.id,
-      x: 100 + index * 70,
-      y: 50,
-      name: person.name,
-      gender: person.gender,
-    })
   })
 
   return nodes
@@ -272,12 +333,103 @@ const personNodes = computed((): GraphNode[] => {
 
 /**
  * 婚姻节点位置计算
- * 婚姻节点位于每对夫妻的中间
+ * 婚姻节点位于每对夫妻的中间，与丈夫妻子同代同高度
  */
 const marriageNodes = computed((): GraphNode[] => {
-  return marriages.value.map((marriage, mIndex) => {
-    const baseY = mIndex * 180 + 80
-    const centerX = 400
+  // 获取所有代数
+  const generations = [...new Set(persons.value.map(p => p.generation ?? 0))].sort((a, b) => a - b)
+  const generationYMap = new Map<number, number>()
+
+  // 每一行的Y坐标
+  const rowHeight = 180
+  const startY = 80
+  generations.forEach((gen, index) => {
+    generationYMap.set(gen, startY + index * rowHeight)
+  })
+
+  // 常量
+  const nodeGap = 80  // 相邻节点之间的距离
+
+  // 婚姻的代数
+  const marriageGenMap = new Map<number, number>()
+  marriages.value.forEach(m => {
+    const husband = persons.value.find(p => p.id === m.husbandId)
+    const wife = persons.value.find(p => p.id === m.wifeId)
+    marriageGenMap.set(m.id, husband?.generation ?? wife?.generation ?? 0)
+  })
+
+  // 已连接的人物
+  const connectedPersonIds = new Set<number>()
+  marriages.value.forEach(m => {
+    connectedPersonIds.add(m.husbandId)
+    connectedPersonIds.add(m.wifeId)
+  })
+
+  // 每一代的槽位
+  interface Slot {
+    type: 'single' | 'husband' | 'marriage' | 'wife'
+    gen: number
+    personId?: number
+    marriageId?: number
+  }
+
+  const slotsByGen = new Map<number, Slot[]>()
+
+  generations.forEach(gen => {
+    const slots: Slot[] = []
+
+    // 单身人物
+    const singlePersons = persons.value.filter(p =>
+      (p.generation ?? 0) === gen && !connectedPersonIds.has(p.id)
+    )
+    singlePersons.forEach(p => {
+      slots.push({ type: 'single', gen, personId: p.id })
+    })
+
+    // 有配偶的婚姻单元：丈夫 -> 关系 -> 妻子
+    const genMarriages = marriages.value.filter(m => marriageGenMap.get(m.id) === gen)
+    genMarriages.forEach(m => {
+      slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+      slots.push({ type: 'marriage', gen, marriageId: m.id })
+      slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+    })
+
+    slotsByGen.set(gen, slots)
+  })
+
+  // 计算每一代的起始X位置
+  const genStartX = new Map<number, number>()
+  generations.forEach(gen => {
+    const slots = slotsByGen.get(gen) || []
+    const totalWidth = (slots.length - 1) * nodeGap + 80
+    genStartX.set(gen, 400 - totalWidth / 2 + 40)
+  })
+
+  return marriages.value.map((marriage) => {
+    const gen = marriageGenMap.get(marriage.id) ?? 0
+    const baseY = generationYMap.get(gen) ?? startY
+
+    // 找到关系(slot)在slots中的位置
+    const slots = slotsByGen.get(gen) || []
+    const marriageSlotIndex = slots.findIndex(s => s.marriageId === marriage.id && s.type === 'marriage')
+
+    if (marriageSlotIndex === -1) {
+      return {
+        id: marriage.id,
+        x: 400,
+        y: baseY,
+        marriageDate: marriage.marriageDate,
+        husbandId: marriage.husbandId,
+        wifeId: marriage.wifeId,
+        childrenIds: marriage.childrenIds,
+        isMarriage: true
+      }
+    }
+
+    const startX = genStartX.get(gen) ?? 400
+    // 关系节点的位置就是marriage slot的位置
+    const centerX = startX + marriageSlotIndex * nodeGap
+
     return {
       id: marriage.id,
       x: centerX,
@@ -477,7 +629,11 @@ onUnmounted(() => {
   window.removeEventListener('resize', handleResize)  // 移除监听
 })
 </script>
+<!--
 
+最小一代开始绘制、每一代人分为单身、有配偶、单身先画每个等距，有配偶的将关系节点和配偶节点加入这一代中依然等距绘制，配偶关系中，由上级产生的在左，结婚加入进来的再右面
+
+  -->
 <!-- ==================== 样式 ==================== -->
 <style scoped>
 /* 整个容器：垂直布局，充满父容器 */

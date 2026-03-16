@@ -42,12 +42,16 @@ ipcMain.handle('window-close', (event) => {
  * 通用数据读取
  */
 ipcMain.handle('data-load', (_, fileName: string) => {
-  const filePath = getDataFilePath(fileName)
-  if (existsSync(filePath)) {
-    const data = readFileSync(filePath, 'utf-8')
-    return JSON.parse(data)
+  try {
+    const filePath = getDataFilePath(fileName)
+    if (existsSync(filePath)) {
+      const data = readFileSync(filePath, 'utf-8')
+      return JSON.parse(data)
+    }
+    return null
+  }catch (e){
+    return '{}'
   }
-  return null
 })
 
 /**
