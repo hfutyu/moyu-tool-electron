@@ -279,9 +279,33 @@ const personNodes = computed((): GraphNode[] => {
       })
 
       fatherMarriages.forEach(m => {
-        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-        slots.push({ type: 'marriage', gen, marriageId: m.id })
-        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+        const husband = persons.value.find(p => p.id === m.husbandId)
+        const wife = persons.value.find(p => p.id === m.wifeId)
+        const husbandIsInternal = husband?.birthMarriageId !== undefined
+        const wifeIsInternal = wife?.birthMarriageId !== undefined
+
+        // 家族内部人员在前，婚姻在中间，外部配偶在后
+        if (husbandIsInternal && !wifeIsInternal) {
+          // 丈夫是家族内部人员，妻子是外部配偶
+          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+          slots.push({ type: 'marriage', gen, marriageId: m.id })
+          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+        } else if (!husbandIsInternal && wifeIsInternal) {
+          // 妻子是家族内部人员，丈夫是外部配偶
+          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+          slots.push({ type: 'marriage', gen, marriageId: m.id })
+          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+        } else if (husbandIsInternal && wifeIsInternal) {
+          // 两者都是家族内部人员，按默认顺序
+          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+          slots.push({ type: 'marriage', gen, marriageId: m.id })
+          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+        } else {
+          // 两者都不是家族内部人员，按默认顺序
+          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+          slots.push({ type: 'marriage', gen, marriageId: m.id })
+          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+        }
       })
     })
 
@@ -301,9 +325,29 @@ const personNodes = computed((): GraphNode[] => {
     // 外部配偶对应的婚姻（排最后）
     const externalMarriages = genMarriages.filter(m => !usedMarriageIds.has(m.id))
     externalMarriages.forEach(m => {
-      slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-      slots.push({ type: 'marriage', gen, marriageId: m.id })
-      slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+      const husband = persons.value.find(p => p.id === m.husbandId)
+      const wife = persons.value.find(p => p.id === m.wifeId)
+      const husbandIsInternal = husband?.birthMarriageId !== undefined
+      const wifeIsInternal = wife?.birthMarriageId !== undefined
+
+      // 家族内部人员在前，婚姻在中间，外部配偶在后
+      if (husbandIsInternal && !wifeIsInternal) {
+        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+        slots.push({ type: 'marriage', gen, marriageId: m.id })
+        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+      } else if (!husbandIsInternal && wifeIsInternal) {
+        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+        slots.push({ type: 'marriage', gen, marriageId: m.id })
+        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+      } else if (husbandIsInternal && wifeIsInternal) {
+        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+        slots.push({ type: 'marriage', gen, marriageId: m.id })
+        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+      } else {
+        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+        slots.push({ type: 'marriage', gen, marriageId: m.id })
+        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+      }
     })
 
     slotsByGen.set(gen, slots)
@@ -464,9 +508,33 @@ const marriageNodes = computed((): GraphNode[] => {
       })
 
       fatherMarriages.forEach(m => {
-        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-        slots.push({ type: 'marriage', gen, marriageId: m.id })
-        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+        const husband = persons.value.find(p => p.id === m.husbandId)
+        const wife = persons.value.find(p => p.id === m.wifeId)
+        const husbandIsInternal = husband?.birthMarriageId !== undefined
+        const wifeIsInternal = wife?.birthMarriageId !== undefined
+
+        // 家族内部人员在前，婚姻在中间，外部配偶在后
+        if (husbandIsInternal && !wifeIsInternal) {
+          // 丈夫是家族内部人员，妻子是外部配偶
+          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+          slots.push({ type: 'marriage', gen, marriageId: m.id })
+          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+        } else if (!husbandIsInternal && wifeIsInternal) {
+          // 妻子是家族内部人员，丈夫是外部配偶
+          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+          slots.push({ type: 'marriage', gen, marriageId: m.id })
+          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+        } else if (husbandIsInternal && wifeIsInternal) {
+          // 两者都是家族内部人员，按默认顺序
+          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+          slots.push({ type: 'marriage', gen, marriageId: m.id })
+          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+        } else {
+          // 两者都不是家族内部人员，按默认顺序
+          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+          slots.push({ type: 'marriage', gen, marriageId: m.id })
+          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+        }
       })
     })
 
@@ -486,9 +554,29 @@ const marriageNodes = computed((): GraphNode[] => {
     // 外部配偶对应的婚姻（排最后）
     const externalMarriages = genMarriages.filter(m => !usedMarriageIds.has(m.id))
     externalMarriages.forEach(m => {
-      slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-      slots.push({ type: 'marriage', gen, marriageId: m.id })
-      slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+      const husband = persons.value.find(p => p.id === m.husbandId)
+      const wife = persons.value.find(p => p.id === m.wifeId)
+      const husbandIsInternal = husband?.birthMarriageId !== undefined
+      const wifeIsInternal = wife?.birthMarriageId !== undefined
+
+      // 家族内部人员在前，婚姻在中间，外部配偶在后
+      if (husbandIsInternal && !wifeIsInternal) {
+        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+        slots.push({ type: 'marriage', gen, marriageId: m.id })
+        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+      } else if (!husbandIsInternal && wifeIsInternal) {
+        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+        slots.push({ type: 'marriage', gen, marriageId: m.id })
+        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+      } else if (husbandIsInternal && wifeIsInternal) {
+        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+        slots.push({ type: 'marriage', gen, marriageId: m.id })
+        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+      } else {
+        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+        slots.push({ type: 'marriage', gen, marriageId: m.id })
+        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+      }
     })
 
     slotsByGen.set(gen, slots)
