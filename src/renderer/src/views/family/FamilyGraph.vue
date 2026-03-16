@@ -96,7 +96,21 @@
     </div>
   </div>
 </template>
-
+<!--
+  1、我针对此系统的数据结构和绘图逻辑定义如下概念
+  家族内部人员节点：由上一代关系所产生的节点而非通过婚姻关系接入的节点
+  外部配偶人员节点：通过婚姻关系接入的节点
+  婚姻关系节点：即婚姻节点
+  婚姻集合包含：家族内部人员节点(婚姻一方) 婚姻关系节点 外部配偶人物节点(婚姻另一方)
+  生育集合包含：婚姻关系(父母婚姻) 家族内部人员节点(孩子)
+  同一父系：同一代中由同一关系节点所产生的家族内部人员节点，包含其所在的婚姻集合
+  2、绘图应遵守如下规则
+  同一代的所有人物节点高度一致，不同代从上到下等高度差
+  同一代的所有节点之间相邻俩个节点之间距离相等
+  同一父系节点应在一起，不同父系节点不应该出现交叉，不同父系排列的左右顺序应该和其父系节点左右顺序一致
+  同一父系内节点顺序遵循，单身在前，婚姻集合在后，同一婚姻集合应在一起，同一婚姻集合内，家族内部人员在前，婚姻关系在中间，外部配偶人员节点在后
+  婚姻集合中婚姻关系和双方以实线相连，生育集合中子节点和上级婚姻关系节点虚线相连
+-->
 <script setup lang="ts">
 // ==================== 引入依赖 ====================
 // Vue 核心函数
@@ -233,22 +247,62 @@ const personNodes = computed((): GraphNode[] => {
   generations.forEach(gen => {
     const slots: Slot[] = []
 
-    // 1. 单身人物（先添加）
+    // 获取这一代所有家族内部人员（由上一代关系产生的）
+    const internalPersons = persons.value.filter(p =>
+      (p.generation ?? 0) === gen && p.birthMarriageId !== undefined
+    )
+    // 按 birthMarriageId 分组，得到父系顺序
+    const fatherLineages = [...new Set(internalPersons.map(p => p.birthMarriageId))].filter(id => id !== undefined)
+
+    // 获取这一代的所有婚姻
+    const genMarriages = marriages.value.filter(m => marriageGenMap.get(m.id) === gen)
+
+    // 获取这一代的所有单身人物
     const singlePersons = persons.value.filter(p =>
       (p.generation ?? 0) === gen && !connectedPersonIds.has(p.id)
     )
-    singlePersons.forEach(p => {
-      slots.push({ type: 'single', gen, personId: p.id })
+
+    // 按父系顺序依次处理：每组先放单身，再放婚姻
+    fatherLineages.forEach(fatherId => {
+      // 该父系的单身人物
+      const fatherSingles = singlePersons.filter(p => p.birthMarriageId === fatherId)
+      fatherSingles.forEach(p => {
+        slots.push({ type: 'single', gen, personId: p.id })
+      })
+
+      // 该父系的婚姻
+      const fatherMarriages = genMarriages.filter(m => {
+        const husband = persons.value.find(p => p.id === m.husbandId)
+        const wife = persons.value.find(p => p.id === m.wifeId)
+        const fatherIdThis = husband?.birthMarriageId ?? wife?.birthMarriageId ?? -1
+        return fatherIdThis === fatherId
+      })
+
+      fatherMarriages.forEach(m => {
+        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+        slots.push({ type: 'marriage', gen, marriageId: m.id })
+        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+      })
     })
 
-    // 2. 有配偶的婚姻单元（后添加）：丈夫 -> 关系 -> 妻子
-    const genMarriages = marriages.value.filter(m => marriageGenMap.get(m.id) === gen)
-    genMarriages.forEach(m => {
-      // 丈夫（由上级产生的，在左）
+    // 处理没有 birthMarriageId 的人员（外部配偶）和没有对应婚姻的
+    // 外部配偶的婚姻
+    const usedMarriageIds = new Set<number>()
+    fatherLineages.forEach(fatherId => {
+      const fatherMarriages = genMarriages.filter(m => {
+        const husband = persons.value.find(p => p.id === m.husbandId)
+        const wife = persons.value.find(p => p.id === m.wifeId)
+        const fatherIdThis = husband?.birthMarriageId ?? wife?.birthMarriageId ?? -1
+        return fatherIdThis === fatherId
+      })
+      fatherMarriages.forEach(m => usedMarriageIds.add(m.id))
+    })
+
+    // 外部配偶对应的婚姻（排最后）
+    const externalMarriages = genMarriages.filter(m => !usedMarriageIds.has(m.id))
+    externalMarriages.forEach(m => {
       slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-      // 关系节点
       slots.push({ type: 'marriage', gen, marriageId: m.id })
-      // 妻子（结婚加入的，在右）
       slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
     })
 
@@ -378,17 +432,60 @@ const marriageNodes = computed((): GraphNode[] => {
   generations.forEach(gen => {
     const slots: Slot[] = []
 
-    // 单身人物
+    // 获取这一代所有家族内部人员（由上一代关系产生的）
+    const internalPersons = persons.value.filter(p =>
+      (p.generation ?? 0) === gen && p.birthMarriageId !== undefined
+    )
+    // 按 birthMarriageId 分组，得到父系顺序
+    const fatherLineages = [...new Set(internalPersons.map(p => p.birthMarriageId))].filter(id => id !== undefined)
+
+    // 获取这一代的所有婚姻
+    const genMarriages = marriages.value.filter(m => marriageGenMap.get(m.id) === gen)
+
+    // 获取这一代的所有单身人物
     const singlePersons = persons.value.filter(p =>
       (p.generation ?? 0) === gen && !connectedPersonIds.has(p.id)
     )
-    singlePersons.forEach(p => {
-      slots.push({ type: 'single', gen, personId: p.id })
+
+    // 按父系顺序依次处理：每组先放单身，再放婚姻
+    fatherLineages.forEach(fatherId => {
+      // 该父系的单身人物
+      const fatherSingles = singlePersons.filter(p => p.birthMarriageId === fatherId)
+      fatherSingles.forEach(p => {
+        slots.push({ type: 'single', gen, personId: p.id })
+      })
+
+      // 该父系的婚姻
+      const fatherMarriages = genMarriages.filter(m => {
+        const husband = persons.value.find(p => p.id === m.husbandId)
+        const wife = persons.value.find(p => p.id === m.wifeId)
+        const fatherIdThis = husband?.birthMarriageId ?? wife?.birthMarriageId ?? -1
+        return fatherIdThis === fatherId
+      })
+
+      fatherMarriages.forEach(m => {
+        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
+        slots.push({ type: 'marriage', gen, marriageId: m.id })
+        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
+      })
     })
 
-    // 有配偶的婚姻单元：丈夫 -> 关系 -> 妻子
-    const genMarriages = marriages.value.filter(m => marriageGenMap.get(m.id) === gen)
-    genMarriages.forEach(m => {
+    // 处理没有 birthMarriageId 的人员（外部配偶）和没有对应婚姻的
+    // 外部配偶的婚姻
+    const usedMarriageIds = new Set<number>()
+    fatherLineages.forEach(fatherId => {
+      const fatherMarriages = genMarriages.filter(m => {
+        const husband = persons.value.find(p => p.id === m.husbandId)
+        const wife = persons.value.find(p => p.id === m.wifeId)
+        const fatherIdThis = husband?.birthMarriageId ?? wife?.birthMarriageId ?? -1
+        return fatherIdThis === fatherId
+      })
+      fatherMarriages.forEach(m => usedMarriageIds.add(m.id))
+    })
+
+    // 外部配偶对应的婚姻（排最后）
+    const externalMarriages = genMarriages.filter(m => !usedMarriageIds.has(m.id))
+    externalMarriages.forEach(m => {
       slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
       slots.push({ type: 'marriage', gen, marriageId: m.id })
       slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
