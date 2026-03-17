@@ -201,7 +201,7 @@
           <el-icon v-if="!isRequestCardShow" @click="isRequestCardShow = !isRequestCardShow"><View /></el-icon>
           <el-icon v-else @click="isRequestCardShow = !isRequestCardShow"><Hide /></el-icon>
         </h3>
-        <el-radio-group v-if="isRequestCardShow" v-model="dataFormat" size="small">
+        <el-radio-group v-if="isRequestCardShow&&!isGetRequest" v-model="dataFormat" size="small">
           <el-radio label="json">JSON</el-radio>
           <el-radio label="form">FormData</el-radio>
         </el-radio-group>
@@ -491,7 +491,7 @@ const dataFormat = ref<'json' | 'form'>('json')
 // 更新占位符文本函数
 const getPlaceholderText = () => {
   if (isGetRequest.value) {
-    return '输入查询参数（JSON格式）'
+    return '输入查询参数（JSON格式或 key:value，每行一个）'
   } else {
     return dataFormat.value === 'json'
       ? '输入请求数据（JSON格式）'
@@ -518,7 +518,37 @@ const sendRequest = async () => {
 
     // 根据数据格式解析请求数据
     if (requestData.value.trim()) {
-      if (dataFormat.value === 'json') {
+      // GET/DELETE 请求支持 key:value 格式
+      if (isGetRequest.value) {
+        // 先尝试解析为 JSON，如果失败则尝试 key:value 格式
+        try {
+          parsedData = JSON.parse(requestData.value)
+        } catch (e) {
+          // 尝试 key:value 格式
+          parsedData = {}
+          requestData.value.split('\n').forEach(line => {
+            const colonIndex = line.indexOf(':')
+            if (colonIndex > 0) {
+              const key = line.substring(0, colonIndex).trim()
+              const value = line.substring(colonIndex + 1).trim()
+              if (key && value) {
+                // 支持数组格式：逗号分隔 或 JSON数组格式
+                if (value.startsWith('[') && value.endsWith(']')) {
+                  try {
+                    parsedData[key] = JSON.parse(value)
+                  } catch {
+                    parsedData[key] = value.split(',').map((v: string) => v.trim())
+                  }
+                } else if (value.includes(',')) {
+                  parsedData[key] = value.split(',').map((v: string) => v.trim())
+                } else {
+                  parsedData[key] = value
+                }
+              }
+            }
+          })
+        }
+      } else if (dataFormat.value === 'json') {
         try {
           parsedData = JSON.parse(requestData.value)
         } catch (e) {
@@ -660,7 +690,37 @@ const executeSingleCall = async () => {
     let parsedData: any = null
     // 根据数据格式解析请求数据
     if (requestData.value.trim()) {
-      if (dataFormat.value === 'json') {
+      // GET/DELETE 请求支持 key:value 格式
+      if (isGetRequest.value) {
+        // 先尝试解析为 JSON，如果失败则尝试 key:value 格式
+        try {
+          parsedData = JSON.parse(requestData.value)
+        } catch (e) {
+          // 尝试 key:value 格式
+          parsedData = {}
+          requestData.value.split('\n').forEach(line => {
+            const colonIndex = line.indexOf(':')
+            if (colonIndex > 0) {
+              const key = line.substring(0, colonIndex).trim()
+              const value = line.substring(colonIndex + 1).trim()
+              if (key && value) {
+                // 支持数组格式：逗号分隔 或 JSON数组格式
+                if (value.startsWith('[') && value.endsWith(']')) {
+                  try {
+                    parsedData[key] = JSON.parse(value)
+                  } catch {
+                    parsedData[key] = value.split(',').map((v: string) => v.trim())
+                  }
+                } else if (value.includes(',')) {
+                  parsedData[key] = value.split(',').map((v: string) => v.trim())
+                } else {
+                  parsedData[key] = value
+                }
+              }
+            }
+          })
+        }
+      } else if (dataFormat.value === 'json') {
         try {
           parsedData = JSON.parse(requestData.value)
         } catch (e) {
