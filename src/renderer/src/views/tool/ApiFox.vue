@@ -21,20 +21,60 @@
 
         <div class="input-group">
           <label>基础URL</label>
-          <el-input
+          <el-autocomplete
             v-model="baseUrl"
+            :fetch-suggestions="queryBaseUrlSearch"
             placeholder="输入基础URL"
             class="url-input"
-          ></el-input>
+            :trigger-on-focus="false"
+            clearable
+            @select="handleBaseUrlSelect"
+            :key="baseUrlRefreshKey"
+          >
+            <template #default="{ item }">
+              <div class="search-item">
+                <span class="search-value">{{ item.value }}</span>
+                <el-button
+                  @click.stop="deleteBaseUrlHistory(item.value)"
+                  size="small"
+                  type="danger"
+                  plain
+                  class="search-delete-btn"
+                >
+                  ❌
+                </el-button>
+              </div>
+            </template>
+          </el-autocomplete>
         </div>
 
         <div class="input-group">
           <label>接口路径</label>
-          <el-input
+          <el-autocomplete
             v-model="path"
+            :fetch-suggestions="queryPathSearch"
             placeholder="输入接口路径，例如: /api/users"
             class="path-input"
-          ></el-input>
+            :trigger-on-focus="false"
+            clearable
+            @select="handlePathSelect"
+            :key="pathRefreshKey"
+          >
+            <template #default="{ item }">
+              <div class="search-item">
+                <span class="search-value">{{ item.value }}</span>
+                <el-button
+                  @click.stop="deletePathHistory(item.value)"
+                  size="small"
+                  type="danger"
+                  plain
+                  class="search-delete-btn"
+                >
+                  ❌
+                </el-button>
+              </div>
+            </template>
+          </el-autocomplete>
         </div>
 
       </div>
@@ -250,6 +290,15 @@
           <div class="history-summary">
             <span class="method-tag" :class="getMethodClass(item.method)">{{ item.method }}</span>
             <span class="history-url">{{ item.baseUrl }}{{ item.path }}</span>
+            <el-button
+              @click.stop="deleteHistoryItem(index)"
+              size="small"
+              type="danger"
+              plain
+              class="delete-history-btn"
+            >
+              🗑️
+            </el-button>
           </div>
           <div class="history-time">{{ formatDate(item.timestamp) }}</div>
         </div>
@@ -270,6 +319,120 @@ import { View, Hide,Close } from '@element-plus/icons-vue'
 const baseUrl = ref('http://127.0.0.1:48080')
 // const path = ref('/ep/overview/day/getBatteryMileageStats?groupType=1')
 const path = ref('/webApiServer/qpstest')
+
+// URL和路径搜索历史
+const baseUrlHistory = ref<string[]>([])
+const pathHistory = ref<string[]>([])
+const baseUrlRefreshKey = ref(0)
+const pathRefreshKey = ref(0)
+
+// 加载历史记录
+const loadSearchHistory = () => {
+  // 加载URL历史
+  const savedUrlHistory = localStorage.getItem('apiBaseUrlHistory')
+  if (savedUrlHistory) {
+    try {
+      baseUrlHistory.value = JSON.parse(savedUrlHistory)
+    } catch (e) {
+      console.error('加载URL历史失败:', e)
+    }
+  }
+
+  // 加载路径历史
+  const savedPathHistory = localStorage.getItem('apiPathHistory')
+  if (savedPathHistory) {
+    try {
+      pathHistory.value = JSON.parse(savedPathHistory)
+    } catch (e) {
+      console.error('加载路径历史失败:', e)
+    }
+  }
+}
+
+// 保存URL到历史
+const saveBaseUrlToHistory = (url: string) => {
+  if (!url.trim()) return
+  // 移除已存在的相同项
+  const index = baseUrlHistory.value.indexOf(url)
+  if (index > -1) {
+    baseUrlHistory.value.splice(index, 1)
+  }
+  // 添加到开头
+  baseUrlHistory.value.unshift(url)
+  // 限制数量
+  if (baseUrlHistory.value.length > 20) {
+    baseUrlHistory.value.pop()
+  }
+  localStorage.setItem('apiBaseUrlHistory', JSON.stringify(baseUrlHistory.value))
+}
+
+// 保存路径到历史
+const savePathToHistory = (p: string) => {
+  if (!p.trim()) return
+  // 移除已存在的相同项
+  const index = pathHistory.value.indexOf(p)
+  if (index > -1) {
+    pathHistory.value.splice(index, 1)
+  }
+  // 添加到开头
+  pathHistory.value.unshift(p)
+  // 限制数量
+  if (pathHistory.value.length > 20) {
+    pathHistory.value.pop()
+  }
+  localStorage.setItem('apiPathHistory', JSON.stringify(pathHistory.value))
+}
+
+// URL搜索建议
+const queryBaseUrlSearch = (queryString: string, cb: any) => {
+  const results = queryString
+    ? baseUrlHistory.value.filter(url => url.toLowerCase().includes(queryString.toLowerCase()))
+    : baseUrlHistory.value
+  cb(results.map(item => ({ value: item })))
+}
+
+// 路径搜索建议
+const queryPathSearch = (queryString: string, cb: any) => {
+  const results = queryString
+    ? pathHistory.value.filter(p => p.toLowerCase().includes(queryString.toLowerCase()))
+    : pathHistory.value
+  cb(results.map(item => ({ value: item })))
+}
+
+// 选择URL
+const handleBaseUrlSelect = (item: any) => {
+  baseUrl.value = item.value
+}
+
+// 选择路径
+const handlePathSelect = (item: any) => {
+  path.value = item.value
+}
+
+// 删除单条URL历史
+const deleteBaseUrlHistory = (url: string) => {
+  const index = baseUrlHistory.value.indexOf(url)
+  if (index > -1) {
+    baseUrlHistory.value.splice(index, 1)
+    localStorage.setItem('apiBaseUrlHistory', JSON.stringify(baseUrlHistory.value))
+    // 触发刷新
+    baseUrlRefreshKey.value++
+  }
+}
+
+// 删除单条路径历史
+const deletePathHistory = (p: string) => {
+  const index = pathHistory.value.indexOf(p)
+  if (index > -1) {
+    pathHistory.value.splice(index, 1)
+    localStorage.setItem('apiPathHistory', JSON.stringify(pathHistory.value))
+    // 触发刷新
+    pathRefreshKey.value++
+  }
+}
+
+// 初始化加载历史
+loadSearchHistory()
 
 // 请求方法
 const method = ref('GET')
@@ -597,6 +760,10 @@ const saveToHistory = () => {
 
   // 保存到本地存储
   localStorage.setItem('apiTestHistory', JSON.stringify(requestHistory.value))
+
+  // 同时保存到搜索历史
+  saveBaseUrlToHistory(baseUrl.value)
+  savePathToHistory(path.value)
 }
 
 // 恢复请求配置
@@ -613,6 +780,13 @@ const restoreRequest = (item: any) => {
 const clearHistory = () => {
   requestHistory.value = []
   localStorage.removeItem('apiTestHistory')
+}
+
+// 删除单条历史记录
+const deleteHistoryItem = (index: number) => {
+  requestHistory.value.splice(index, 1)
+  // 保存到本地存储
+  localStorage.setItem('apiTestHistory', JSON.stringify(requestHistory.value))
 }
 
 // 格式化响应数据
@@ -745,6 +919,10 @@ watch(dataFormat, (newValue, oldValue) => {
 }
 
 .url-input, .path-input, .time-input, .count-input {
+  width: 100%;
+}
+
+:deep(.url-input), :deep(.path-input) {
   width: 100%;
 }
 
@@ -970,6 +1148,34 @@ watch(dataFormat, (newValue, oldValue) => {
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
+}
+
+.delete-history-btn {
+  margin-left: auto;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+/* 搜索建议框样式 */
+.search-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.search-value {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-delete-btn {
+  padding: 2px 6px;
+  font-size: 10px;
+  margin-left: 8px;
+  flex-shrink: 0;
 }
 
 .method-tag {

@@ -67,7 +67,7 @@ const locale = ref(zhCn)
 const MenuItem = defineAsyncComponent(() => import('./MenuItem.vue'))
 
 const router = useRouter()
-const isCollapse = ref(false) //左侧菜单展开状态
+const isCollapse = ref(true) //左侧菜单展开状态
 
 // 切换菜单折叠状态
 const toggleCollapse = () => {
