@@ -1,5 +1,6 @@
 // ========== 辈分 =============
 export const digitMap = ['初', '壹','贰','叁','肆','伍','陆','柒','捌','玖'];
+export const rankMap = ['东西','大', '二','三','四','五','六','七','八','九'];
 
 // ========== 类型定义 ==========
 
@@ -8,6 +9,7 @@ export interface Person {
   id: number
 
   generation: number //代
+  order?: number //排行
 
 
   // 基本信息
@@ -90,15 +92,16 @@ export const saveData = async (data: FamilyData): Promise<boolean> => {
  */
 export const getPersons = async (): Promise<Person[]> => {
   const data = await loadData()
-  // 按照辈分排序
-  data.persons.sort((a,b) => {
-    if (!a.generation){
-      return -1
-    }else if (!b.generation){
-      return 1
-    }else{
-      return a.generation - b.generation
+  // 按照辈分排序，generation 从小到大（undefined 视为 0），generation 相同则按 birthOrder 排序（undefined 视为 0）
+  data.persons.sort((a, b) => {
+    const genA = a.generation ?? 0
+    const genB = b.generation ?? 0
+    if (genA !== genB) {
+      return genA - genB
     }
+    const orderA = a.order ?? 0
+    const orderB = b.order ?? 0
+    return orderA - orderB
   })
   return data.persons
 }
@@ -132,7 +135,24 @@ export const updatePerson = async (id: number, updates: Partial<Person>): Promis
   const data = await loadData()
   const index = data.persons.findIndex((p) => p.id === id)
   if (index === -1) throw new Error('成员不存在')
+
   data.persons[index] = { ...data.persons[index], ...updates }
+
+  // 如果更新了 order，同步更新其配偶的 order
+  if (updates.order !== undefined) {
+    const person = data.persons[index]
+    if (person.marriageId) {
+      const marriage = data.marriages.find(m => m.id === person.marriageId)
+      if (marriage) {
+        const spouseId = person.id === marriage.husbandId ? marriage.wifeId : marriage.husbandId
+        const spouseIndex = data.persons.findIndex(p => p.id === spouseId)
+        if (spouseIndex !== -1) {
+          data.persons[spouseIndex] = { ...data.persons[spouseIndex], order: updates.order }
+        }
+      }
+    }
+  }
+
   await saveData(data)
   return data.persons[index]
 }

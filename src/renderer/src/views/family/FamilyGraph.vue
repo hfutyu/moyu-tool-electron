@@ -112,6 +112,11 @@
   婚姻集合中婚姻关系和双方以实线相连，生育集合中子节点和上级婚姻关系节点虚线相连
 -->
 <script setup lang="ts">
+/**
+ * 人物节点按代分，同一代 一行
+ * 父系一样的放在一起 父系不一样的按父系排行从小到大 （人物增加排行 关系增加排行）
+ * 同一父系按 排行大小排序 排行一样 按家族内部人员节点在前
+ */
 // ==================== 引入依赖 ====================
 // Vue 核心函数
 import { ref, computed, onMounted, onUnmounted } from 'vue'
@@ -221,9 +226,7 @@ const personNodes = computed((): GraphNode[] => {
   // 婚姻的代数
   const marriageGenMap = new Map<number, number>()
   marriages.value.forEach(m => {
-    const husband = persons.value.find(p => p.id === m.husbandId)
-    const wife = persons.value.find(p => p.id === m.wifeId)
-    marriageGenMap.set(m.id, husband?.generation ?? wife?.generation ?? 0)
+    marriageGenMap.set(m.id, m.generation)
   })
 
   // 已连接的人物
@@ -451,9 +454,7 @@ const marriageNodes = computed((): GraphNode[] => {
   // 婚姻的代数
   const marriageGenMap = new Map<number, number>()
   marriages.value.forEach(m => {
-    const husband = persons.value.find(p => p.id === m.husbandId)
-    const wife = persons.value.find(p => p.id === m.wifeId)
-    marriageGenMap.set(m.id, husband?.generation ?? wife?.generation ?? 0)
+    marriageGenMap.set(m.id, m.generation)
   })
 
   // 已连接的人物

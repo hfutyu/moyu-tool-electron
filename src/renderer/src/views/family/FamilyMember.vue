@@ -272,6 +272,17 @@
           />
         </el-form-item>
 
+        <el-form-item label="排行" label-position="top">
+          <el-input-number
+            :disabled="personDialogTitle === 2"
+            v-model="personForm.order"
+            :min="1"
+            :max="10"
+            controls-position="right"
+            size="large"
+          />
+        </el-form-item>
+
         <el-form-item label="性别" label-position="top">
           <el-radio-group v-model="personForm.gender" :disabled="personDialogTitle === 0||personDialogTitle === 2">
             <el-radio :value="0" border>男</el-radio>
@@ -373,6 +384,12 @@
             {{digitMap[scope.row.generation]}}代
           </template>
         </el-table-column>
+        <el-table-column prop="order" label="排行" width="120">
+          <template #default="scope">
+            <span v-if="scope.row.order">老{{rankMap[scope.row.order]}}</span>
+            <span v-else>未知</span>
+          </template>
+        </el-table-column>
 <!--        显示乳名-->
         <el-table-column prop="name" label="姓名" width="120">
           <template #default="scope">
@@ -428,7 +445,7 @@ import {
   updatePerson,
   marriageAddPerson,
   type Person,
-  type Marriage, digitMap, addChild, updateMarriage
+  type Marriage, digitMap, addChild, updateMarriage, rankMap
 } from './FamilyService'
 
 // 数据
@@ -635,6 +652,7 @@ const openPersonForm = (person?: Person, type: number = 1) => {
     // 结婚
     personDialogTitle.value = 2
     personForm.value.gender = currentPerson.value.gender === 0?1:0
+    personForm.value.order = currentPerson.value.order
   }else if(type === 3 && currentMarriage.value){
     // 生子
     // 新增人员 代 birthMarriageId 关系新增孩子id
@@ -812,8 +830,6 @@ onMounted(async () => {
 }
 
 .row-card{
-  margin-left: 5px;
-  margin-right: 5px;
   border: 1px solid #e0e0e0;
   padding: 15px 15px;
   border-radius: 8px;
@@ -824,10 +840,7 @@ onMounted(async () => {
 .col-card{
   border: 1px solid #e0e0e0;
   padding: 15px 15px;
-  width: 100%;
   margin-bottom: 10px;
-  margin-left: 5px;
-  margin-right: 5px;
   border-radius: 8px;
   background: #fff;
   flex: 1;

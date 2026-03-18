@@ -100,8 +100,9 @@ app.whenReady().then(() => {
  */
 function createMainWindow(): BrowserWindow {
   const window = new BrowserWindow({
-    width: 1350,
+    width: 1200,
     height: 800,
+    // resizable: false,
     show: true,
     icon: join(__dirname, '../../resources/icon.ico'),
     autoHideMenuBar: true,
