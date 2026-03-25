@@ -113,9 +113,13 @@
 -->
 <script setup lang="ts">
 /**
- * 人物节点按代分，同一代 一行
- * 父系一样的放在一起 父系不一样的按父系排行从小到大 （人物增加排行 关系增加排行）
- * 同一父系按 排行大小排序 排行一样 按家族内部人员节点在前
+ *
+ * 图谱如何避免出现交叉
+ * 下一代的顺序 要 和他们父母的顺序一致 顺序由性别和排行构成 男在前 大伯 大姑 二伯 三伯 ...
+ * 筛选内部人 先按父辈顺序排 同父辈顺序再按本人顺序排 循环
+ * 每个人push 如果有配偶 关系push 配偶push 这一循环结束
+ * 由此得到每一代的顺序 保证每一代的顺序和上一代时一致的 同时还考虑了 婚姻和配偶
+ * 绘图时等距离依次绘制，然后在加入连线
  */
 // ==================== 引入依赖 ====================
 // Vue 核心函数
@@ -190,494 +194,302 @@ interface Link {
 }
 
 
-// ==================== 计算属性（自动计算节点位置） ====================
+// ==================== 辅助函数 ====================
 
 /**
- * 人物节点位置计算
+ * 判断是否家族内部人员
+ * @param person - 待检查的人物
+ * @returns true 表示该人物由上一代婚姻关系所产生（而非外部配偶）
  *
- * 布局规则：
- * - 同一代人（generation相同）在同一行，高度一致
- * - 同一代的所有人物（包括有婚姻和无婚姻）统一排布，不重叠
- * - 有婚姻的：丈夫在左，婚姻在中，妻子在右（占280宽）
- * - 无婚姻的：单独占位（占80宽）
- * - 孩子显示在婚姻节点的下方（下一代）
- *
- * 示例布局（第1代）:
- *   大爹  老六--婚姻--秀  二爹
+ * 判断依据：有 birthMarriageId 表示是"被出生"的，是家族内部人员
+ * 无 birthMarriageId 表示是"嫁入/入赘"的，是外部配偶
  */
-const personNodes = computed((): GraphNode[] => {
-  const nodes: GraphNode[] = []
-  const posMap = new Map<number, { x: number; y: number }>()
+const isInternalPerson = (person: Person) => person.birthMarriageId !== undefined
 
-  // 获取所有代数
+/** 根据ID获取人物对象 */
+const getPersonById = (id: number) => persons.value.find(p => p.id === id)
+
+/**
+ * 获取人物的父系ID
+ * @param person - 待检查的人物（可能是undefined）
+ * @returns birthMarriageId 或 -1（无父系）
+ *
+ * 用于判断两个人是否属于同一父系（同一祖先的后代）
+ */
+const getFatherLineage = (person: Person | undefined) => person?.birthMarriageId ?? -1
+
+// ==================== 槽位类型定义 ====================
+
+/**
+ * 槽位（Slot）- 图谱布局的基本单元
+ *
+ * 图谱中每个节点都占用一个槽位，槽位按顺序排列形成一行（同一代）
+ * 四种槽位类型：
+ * - single: 单身人物（无婚姻）
+ * - internal: 家族内部人员（有婚姻，角色可能是丈夫或妻子）
+ * - external: 外部配偶人员（有婚姻，从外部接入）
+ * - marriage: 婚姻关系（菱形节点）
+ *
+ * 【布局顺序】
+ * 同一父系内：单身在前，婚姻在后
+ * 婚姻集合内：内部人员-婚姻-外部人员
+ */
+interface Slot {
+  type: 'single' | 'internal' | 'marriage' | 'external'  // 槽位类型
+  gen: number                                             // 所属代数
+  personId?: number                                       // 人物ID（single/internal/external时）
+  marriageId?: number                                     // 婚姻ID（marriage时）
+}
+
+// ==================== 核心布局算法 ====================
+
+/**
+ * 计算每一代的槽位排列顺序
+ *
+ * 【核心逻辑】
+ * 同一代的节点按从左到右排列，顺序规则：
+ * 1. 同一父系（birthMarriageId相同）的节点必须相邻
+ * 2. 不同父系按父系顺序排列，避免交叉
+ * 3. 同一父系内：单身在前，婚姻在后
+ * 4. 婚姻集合内：家族内部人员在左，婚姻在中，外部配偶在右
+ *
+ * 【示例】
+ * 假设第1代有大爹(父系A)、二爹(父系A)、大伯(父系B)，他们的配偶依次是秀、丽、华
+ * 布局结果：单身(大爹) 单身(二爹) 大伯-婚姻-华
+ *
+ * @returns
+ * - slotsByGen: Map<代数, 该代所有槽位[]>
+ * - generations: 所有代数列表（已排序）
+ */
+const computeGenerationSlots = () => {
+  // 1. 收集所有代数并排序（从第0代开始，第0代是最早的祖先）
   const generations = [...new Set(persons.value.map(p => p.generation ?? 0))].sort((a, b) => a - b)
-  const generationYMap = new Map<number, number>()
+  const slotsByGen = new Map<number, Slot[]>()
 
-  // 每一行的Y坐标
-  const rowHeight = 180
-  const startY = 80
-  generations.forEach((gen, index) => {
-    generationYMap.set(gen, startY + index * rowHeight)
-  })
-
-  // 常量
-  const nodeGap = 80  // 相邻节点之间的距离
-
-  // 婚姻的代数
-  const marriageGenMap = new Map<number, number>()
-  marriages.value.forEach(m => {
-    marriageGenMap.set(m.id, m.generation)
-  })
-
-  // 已连接的人物
+  // 2. 收集所有有配偶的人物ID（用于判断单身）
   const connectedPersonIds = new Set<number>()
   marriages.value.forEach(m => {
     connectedPersonIds.add(m.husbandId)
     connectedPersonIds.add(m.wifeId)
   })
 
-  // 每一代的所有"槽位"：单身人物、丈夫、关系、妻子
-  // 用于计算总宽度和居中
-  interface Slot {
-    type: 'single' | 'husband' | 'marriage' | 'wife'
-    gen: number
-    personId?: number
-    marriageId?: number
-  }
-
-  const slotsByGen = new Map<number, Slot[]>()
-
+  // 3. 遍历每个代数，为该代构建槽位数组
   generations.forEach(gen => {
     const slots: Slot[] = []
 
-    // 获取这一代所有家族内部人员（由上一代关系产生的）
-    const internalPersons = persons.value.filter(p =>
-      (p.generation ?? 0) === gen && p.birthMarriageId !== undefined
-    )
-    // 按 birthMarriageId 分组，得到父系顺序
+    // 3.1 找出该代的家族内部人员（通过birthMarriageId确定父系）
+    const internalPersons = persons.value.filter(p => (p.generation ?? 0) === gen && isInternalPerson(p))
+    // 按birthMarriageId分组，得到父系列表（去重、排序）
     const fatherLineages = [...new Set(internalPersons.map(p => p.birthMarriageId))].filter(id => id !== undefined)
 
-    // 获取这一代的所有婚姻
-    const genMarriages = marriages.value.filter(m => marriageGenMap.get(m.id) === gen)
+    // 3.2 找出该代的所有婚姻和单身人物
+    const genMarriages = marriages.value.filter(m => m.generation === gen)                    // 该代婚姻
+    const singlePersons = persons.value.filter(p => (p.generation ?? 0) === gen && !connectedPersonIds.has(p.id))  // 该代单身
 
-    // 获取这一代的所有单身人物
-    const singlePersons = persons.value.filter(p =>
-      (p.generation ?? 0) === gen && !connectedPersonIds.has(p.id)
-    )
-
-    // 按父系顺序依次处理：每组先放单身，再放婚姻
+    // 3.3 按父系顺序处理每个父系
     fatherLineages.forEach(fatherId => {
-      // 该父系的单身人物
-      const fatherSingles = singlePersons.filter(p => p.birthMarriageId === fatherId)
-      fatherSingles.forEach(p => {
+      // 该父系的所有单身人物（按出生婚姻分组）
+      singlePersons.filter(p => p.birthMarriageId === fatherId).forEach(p => {
         slots.push({ type: 'single', gen, personId: p.id })
       })
 
-      // 该父系的婚姻
+      // 该父系的所有婚姻（夫妻中至少有一人是该父系的成员）
       const fatherMarriages = genMarriages.filter(m => {
-        const husband = persons.value.find(p => p.id === m.husbandId)
-        const wife = persons.value.find(p => p.id === m.wifeId)
-        const fatherIdThis = husband?.birthMarriageId ?? wife?.birthMarriageId ?? -1
-        return fatherIdThis === fatherId
+        const husband = getPersonById(m.husbandId)
+        const wife = getPersonById(m.wifeId)
+        return getFatherLineage(husband) === fatherId || getFatherLineage(wife) === fatherId
       })
 
-      fatherMarriages.forEach(m => {
-        const husband = persons.value.find(p => p.id === m.husbandId)
-        const wife = persons.value.find(p => p.id === m.wifeId)
-        const husbandIsInternal = husband?.birthMarriageId !== undefined
-        const wifeIsInternal = wife?.birthMarriageId !== undefined
-
-        // 家族内部人员在前，婚姻在中间，外部配偶在后
-        if (husbandIsInternal && !wifeIsInternal) {
-          // 丈夫是家族内部人员，妻子是外部配偶
-          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-          slots.push({ type: 'marriage', gen, marriageId: m.id })
-          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-        } else if (!husbandIsInternal && wifeIsInternal) {
-          // 妻子是家族内部人员，丈夫是外部配偶
-          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-          slots.push({ type: 'marriage', gen, marriageId: m.id })
-          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-        } else if (husbandIsInternal && wifeIsInternal) {
-          // 两者都是家族内部人员，按默认顺序
-          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-          slots.push({ type: 'marriage', gen, marriageId: m.id })
-          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-        } else {
-          // 两者都不是家族内部人员，按默认顺序
-          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-          slots.push({ type: 'marriage', gen, marriageId: m.id })
-          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-        }
-      })
+      // 为每个婚姻添加三个槽位（丈夫-婚姻-妻子）
+      fatherMarriages.forEach(m => addMarriageSlots(slots, gen, m))
     })
 
-    // 处理没有 birthMarriageId 的人员（外部配偶）和没有对应婚姻的
-    // 外部配偶的婚姻
-    const usedMarriageIds = new Set<number>()
-    fatherLineages.forEach(fatherId => {
-      const fatherMarriages = genMarriages.filter(m => {
-        const husband = persons.value.find(p => p.id === m.husbandId)
-        const wife = persons.value.find(p => p.id === m.wifeId)
-        const fatherIdThis = husband?.birthMarriageId ?? wife?.birthMarriageId ?? -1
-        return fatherIdThis === fatherId
-      })
-      fatherMarriages.forEach(m => usedMarriageIds.add(m.id))
-    })
+    // 3.4 处理外部配偶的婚姻（夫妻都不是家族内部人员）
+    // 这些婚姻不属于任何父系，放在该代的最后
+    const usedMarriageIds = new Set(fatherLineages.flatMap(fatherId =>
+      genMarriages.filter(m => {
+        const husband = getPersonById(m.husbandId)
+        const wife = getPersonById(m.wifeId)
+        return getFatherLineage(husband) === fatherId || getFatherLineage(wife) === fatherId
+      }).map(m => m.id)
+    ))
 
-    // 外部配偶对应的婚姻（排最后）
-    const externalMarriages = genMarriages.filter(m => !usedMarriageIds.has(m.id))
-    externalMarriages.forEach(m => {
-      const husband = persons.value.find(p => p.id === m.husbandId)
-      const wife = persons.value.find(p => p.id === m.wifeId)
-      const husbandIsInternal = husband?.birthMarriageId !== undefined
-      const wifeIsInternal = wife?.birthMarriageId !== undefined
-
-      // 家族内部人员在前，婚姻在中间，外部配偶在后
-      if (husbandIsInternal && !wifeIsInternal) {
-        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-        slots.push({ type: 'marriage', gen, marriageId: m.id })
-        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-      } else if (!husbandIsInternal && wifeIsInternal) {
-        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-        slots.push({ type: 'marriage', gen, marriageId: m.id })
-        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-      } else if (husbandIsInternal && wifeIsInternal) {
-        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-        slots.push({ type: 'marriage', gen, marriageId: m.id })
-        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-      } else {
-        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-        slots.push({ type: 'marriage', gen, marriageId: m.id })
-        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-      }
-    })
+    genMarriages.filter(m => !usedMarriageIds.has(m.id)).forEach(m => addMarriageSlots(slots, gen, m))
 
     slotsByGen.set(gen, slots)
   })
 
-  // 计算每一代的起始X位置（居中）
+  return { slotsByGen, generations }
+}
+
+/**
+ * 为婚姻添加三个槽位（内部-婚姻-外部）
+ *
+ * 【布局规则】
+ * - 家族内部人员放在左边（更靠近家族中心）
+ * - 外部配偶放在右边（从外部接入）
+ * - 婚姻关系节点放中间
+ *
+ * @param slots - 槽位数组（会被修改）
+ * @param gen - 代数
+ * @param m - 婚姻对象
+ */
+const addMarriageSlots = (slots: Slot[], gen: number, m: Marriage) => {
+  const wife = getPersonById(m.wifeId)
+  const wifeInternal = isInternalPerson(wife!)
+
+  // 确定左边是谁（内部人员优先），右边是谁（外部人员）
+  // 内部人员在左，外部人员在右，婚姻在中间
+  let leftId: number, rightId: number
+  if (wifeInternal) {
+    leftId = m.wifeId; rightId = m.husbandId            // 丈夫在左
+  } else {
+    leftId = m.husbandId; rightId = m.wifeId          // 默认：丈夫在左
+  }
+
+  // 统一 push：内部-婚姻-外部
+  slots.push({ type: 'internal', gen, personId: leftId, marriageId: m.id })
+  slots.push({ type: 'marriage', gen, marriageId: m.id })
+  slots.push({ type: 'external', gen, personId: rightId, marriageId: m.id })
+}
+
+// ==================== 节点和连线计算 ====================
+
+/**
+ * 合并计算所有节点位置和连线
+ *
+ * 【计算流程】
+ * 1. 调用 computeGenerationSlots() 获取槽位布局
+ * 2. 计算每代的Y坐标（代际间距）和X起始位置（居中）
+ * 3. 第一遍遍历：渲染当前代的所有节点（人物+婚姻）
+ *    - 同时建立 posMap（人物位置）和 marriagePosMap（婚姻位置）
+ * 4. 第二遍遍历：渲染下一代的子节点 + 生成所有连线
+ *    - 从 marriagePosMap 获取父母婚姻位置
+ *    - 从 posMap 获取配偶和孩子的位置
+ *    - 生成 spouse 类型连线（实线）和 child 类型连线（虚线）
+ *
+ * 【性能优化】
+ * - 使用 Map 直接查找位置，O(1) 复杂度
+ * - 节点和连线一次计算完成，避免重复遍历
+ *
+ * @returns 包含 nodes（所有节点）和 links（所有连线）的对象
+ */
+const graphData = computed(() => {
+  const nodes: GraphNode[] = []
+  const links: Link[] = []
+  const posMap = new Map<number, { x: number; y: number }>()      // 人物ID -> 位置
+  const marriagePosMap = new Map<number, { x: number; y: number }>() // 婚姻ID -> 位置
+  const nodeGap = 80      // 节点间距
+  const rowHeight = 180   // 代际间距（两代之间的垂直距离）
+  const startY = 80       // 第一代的Y坐标
+
+  // 获取槽位布局（每代的节点排列顺序）
+  const { slotsByGen, generations } = computeGenerationSlots()
+
+  // 计算每代的Y坐标：第0代在startY，第1代在startY+rowHeight，以此类推
+  const generationYMap = new Map<number, number>()
+  generations.forEach((gen, index) => {
+    generationYMap.set(gen, startY + index * rowHeight)
+  })
+
+  // 计算每代的起始X坐标（使该代节点在画布上居中）
+  // 公式：居中偏移 + (槽位数-1)*间距/2
   const genStartX = new Map<number, number>()
   generations.forEach(gen => {
     const slots = slotsByGen.get(gen) || []
-    const totalWidth = (slots.length - 1) * nodeGap + 80 // 80是第一个节点的起始偏移
+    const totalWidth = (slots.length - 1) * nodeGap + 80  // 80是节点宽度
     genStartX.set(gen, 400 - totalWidth / 2 + 40)
   })
 
-  // 绘制人物节点
+  // ========== 第一遍：渲染当前代的节点 ==========
   generations.forEach(gen => {
     const slots = slotsByGen.get(gen) || []
     const baseY = generationYMap.get(gen) ?? startY
+    const startX = genStartX.get(gen) ?? 400
 
     slots.forEach((slot, index) => {
-      const startX = genStartX.get(gen) ?? 400
+      // 计算该槽位的X坐标
       const x = startX + index * nodeGap
 
-      // 单身、丈夫、妻子需要渲染人物节点
-      if (slot.type !== 'marriage' && slot.personId) {
-        const person = persons.value.find(p => p.id === slot.personId)
+      if (slot.type === 'marriage') {
+        // 婚姻节点（菱形）
+        const marriage = marriages.value.find(m => m.id === slot.marriageId)
+        if (marriage) {
+          marriagePosMap.set(marriage.id, { x, y: baseY })
+          nodes.push({
+            id: marriage.id,
+            x, y: baseY,
+            marriageDate: marriage.marriageDate,
+            husbandId: marriage.husbandId,
+            wifeId: marriage.wifeId,
+            childrenIds: marriage.childrenIds,
+            isMarriage: true
+          })
+        }
+      } else if (slot.personId) {
+        // 人物节点（圆形）：single | internal | external
+        const person = getPersonById(slot.personId)
         if (person && !posMap.has(person.id)) {
-          nodes.push({
-            id: person.id,
-            x: x,
-            y: baseY,
-            name: person.name,
-            gender: person.gender,
-          })
           posMap.set(person.id, { x, y: baseY })
+          nodes.push({ id: person.id, x, y: baseY, name: person.name, gender: person.gender })
         }
       }
     })
   })
 
-  // 处理孩子（下一代）
+  // ========== 第二遍：渲染下一代节点 + 生成连线 ==========
   marriages.value.forEach(marriage => {
-    const gen = marriageGenMap.get(marriage.id) ?? 0
-    const slots = slotsByGen.get(gen) || []
+    const marriagePos = marriagePosMap.get(marriage.id)
+    if (!marriagePos) return  // 找不到该婚姻的位置（应该不会发生）
 
-    // 找到关系节点在这一代slots中的位置
-    const marriageSlotIndex = slots.findIndex(s => s.marriageId === marriage.id && s.type === 'marriage')
-    if (marriageSlotIndex === -1) return
+    const husbandPos = posMap.get(marriage.husbandId)
+    const wifePos = posMap.get(marriage.wifeId)
 
-    const startX = genStartX.get(gen) ?? 400
-    const marriageX = startX + marriageSlotIndex * nodeGap
-
-    if (marriage.childrenIds && marriage.childrenIds.length > 0) {
-      const childCount = marriage.childrenIds.length
-      const childSpacing = 90
-      const totalWidth = (childCount - 1) * childSpacing
-
-      // 孩子在下一行，从关系节点中心开始
-      const childGen = gen + 1
-      const childBaseY = generationYMap.get(childGen) ?? (startY + (gen + 1) * rowHeight)
-      const childStartX = marriageX + 80 / 2 - totalWidth / 2
-
-      marriage.childrenIds.forEach((childId, cIndex) => {
-        const child = persons.value.find(p => p.id === childId)
-        if (child && !posMap.has(child.id)) {
-          const childX = childStartX + cIndex * childSpacing
-          nodes.push({
-            id: child.id,
-            x: childX,
-            y: childBaseY,
-            name: child.name,
-            gender: child.gender,
-          })
-          posMap.set(child.id, { x: childX, y: childBaseY })
-        }
-      })
-    }
-  })
-
-  return nodes
-})
-
-/**
- * 婚姻节点位置计算
- * 婚姻节点位于每对夫妻的中间，与丈夫妻子同代同高度
- */
-const marriageNodes = computed((): GraphNode[] => {
-  // 获取所有代数
-  const generations = [...new Set(persons.value.map(p => p.generation ?? 0))].sort((a, b) => a - b)
-  const generationYMap = new Map<number, number>()
-
-  // 每一行的Y坐标
-  const rowHeight = 180
-  const startY = 80
-  generations.forEach((gen, index) => {
-    generationYMap.set(gen, startY + index * rowHeight)
-  })
-
-  // 常量
-  const nodeGap = 80  // 相邻节点之间的距离
-
-  // 婚姻的代数
-  const marriageGenMap = new Map<number, number>()
-  marriages.value.forEach(m => {
-    marriageGenMap.set(m.id, m.generation)
-  })
-
-  // 已连接的人物
-  const connectedPersonIds = new Set<number>()
-  marriages.value.forEach(m => {
-    connectedPersonIds.add(m.husbandId)
-    connectedPersonIds.add(m.wifeId)
-  })
-
-  // 每一代的槽位
-  interface Slot {
-    type: 'single' | 'husband' | 'marriage' | 'wife'
-    gen: number
-    personId?: number
-    marriageId?: number
-  }
-
-  const slotsByGen = new Map<number, Slot[]>()
-
-  generations.forEach(gen => {
-    const slots: Slot[] = []
-
-    // 获取这一代所有家族内部人员（由上一代关系产生的）
-    const internalPersons = persons.value.filter(p =>
-      (p.generation ?? 0) === gen && p.birthMarriageId !== undefined
-    )
-    // 按 birthMarriageId 分组，得到父系顺序
-    const fatherLineages = [...new Set(internalPersons.map(p => p.birthMarriageId))].filter(id => id !== undefined)
-
-    // 获取这一代的所有婚姻
-    const genMarriages = marriages.value.filter(m => marriageGenMap.get(m.id) === gen)
-
-    // 获取这一代的所有单身人物
-    const singlePersons = persons.value.filter(p =>
-      (p.generation ?? 0) === gen && !connectedPersonIds.has(p.id)
-    )
-
-    // 按父系顺序依次处理：每组先放单身，再放婚姻
-    fatherLineages.forEach(fatherId => {
-      // 该父系的单身人物
-      const fatherSingles = singlePersons.filter(p => p.birthMarriageId === fatherId)
-      fatherSingles.forEach(p => {
-        slots.push({ type: 'single', gen, personId: p.id })
-      })
-
-      // 该父系的婚姻
-      const fatherMarriages = genMarriages.filter(m => {
-        const husband = persons.value.find(p => p.id === m.husbandId)
-        const wife = persons.value.find(p => p.id === m.wifeId)
-        const fatherIdThis = husband?.birthMarriageId ?? wife?.birthMarriageId ?? -1
-        return fatherIdThis === fatherId
-      })
-
-      fatherMarriages.forEach(m => {
-        const husband = persons.value.find(p => p.id === m.husbandId)
-        const wife = persons.value.find(p => p.id === m.wifeId)
-        const husbandIsInternal = husband?.birthMarriageId !== undefined
-        const wifeIsInternal = wife?.birthMarriageId !== undefined
-
-        // 家族内部人员在前，婚姻在中间，外部配偶在后
-        if (husbandIsInternal && !wifeIsInternal) {
-          // 丈夫是家族内部人员，妻子是外部配偶
-          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-          slots.push({ type: 'marriage', gen, marriageId: m.id })
-          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-        } else if (!husbandIsInternal && wifeIsInternal) {
-          // 妻子是家族内部人员，丈夫是外部配偶
-          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-          slots.push({ type: 'marriage', gen, marriageId: m.id })
-          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-        } else if (husbandIsInternal && wifeIsInternal) {
-          // 两者都是家族内部人员，按默认顺序
-          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-          slots.push({ type: 'marriage', gen, marriageId: m.id })
-          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-        } else {
-          // 两者都不是家族内部人员，按默认顺序
-          slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-          slots.push({ type: 'marriage', gen, marriageId: m.id })
-          slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-        }
-      })
-    })
-
-    // 处理没有 birthMarriageId 的人员（外部配偶）和没有对应婚姻的
-    // 外部配偶的婚姻
-    const usedMarriageIds = new Set<number>()
-    fatherLineages.forEach(fatherId => {
-      const fatherMarriages = genMarriages.filter(m => {
-        const husband = persons.value.find(p => p.id === m.husbandId)
-        const wife = persons.value.find(p => p.id === m.wifeId)
-        const fatherIdThis = husband?.birthMarriageId ?? wife?.birthMarriageId ?? -1
-        return fatherIdThis === fatherId
-      })
-      fatherMarriages.forEach(m => usedMarriageIds.add(m.id))
-    })
-
-    // 外部配偶对应的婚姻（排最后）
-    const externalMarriages = genMarriages.filter(m => !usedMarriageIds.has(m.id))
-    externalMarriages.forEach(m => {
-      const husband = persons.value.find(p => p.id === m.husbandId)
-      const wife = persons.value.find(p => p.id === m.wifeId)
-      const husbandIsInternal = husband?.birthMarriageId !== undefined
-      const wifeIsInternal = wife?.birthMarriageId !== undefined
-
-      // 家族内部人员在前，婚姻在中间，外部配偶在后
-      if (husbandIsInternal && !wifeIsInternal) {
-        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-        slots.push({ type: 'marriage', gen, marriageId: m.id })
-        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-      } else if (!husbandIsInternal && wifeIsInternal) {
-        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-        slots.push({ type: 'marriage', gen, marriageId: m.id })
-        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-      } else if (husbandIsInternal && wifeIsInternal) {
-        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-        slots.push({ type: 'marriage', gen, marriageId: m.id })
-        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-      } else {
-        slots.push({ type: 'husband', gen, personId: m.husbandId, marriageId: m.id })
-        slots.push({ type: 'marriage', gen, marriageId: m.id })
-        slots.push({ type: 'wife', gen, personId: m.wifeId, marriageId: m.id })
-      }
-    })
-
-    slotsByGen.set(gen, slots)
-  })
-
-  // 计算每一代的起始X位置
-  const genStartX = new Map<number, number>()
-  generations.forEach(gen => {
-    const slots = slotsByGen.get(gen) || []
-    const totalWidth = (slots.length - 1) * nodeGap + 80
-    genStartX.set(gen, 400 - totalWidth / 2 + 40)
-  })
-
-  return marriages.value.map((marriage) => {
-    const gen = marriageGenMap.get(marriage.id) ?? 0
-    const baseY = generationYMap.get(gen) ?? startY
-
-    // 找到关系(slot)在slots中的位置
-    const slots = slotsByGen.get(gen) || []
-    const marriageSlotIndex = slots.findIndex(s => s.marriageId === marriage.id && s.type === 'marriage')
-
-    if (marriageSlotIndex === -1) {
-      return {
-        id: marriage.id,
-        x: 400,
-        y: baseY,
-        marriageDate: marriage.marriageDate,
-        husbandId: marriage.husbandId,
-        wifeId: marriage.wifeId,
-        childrenIds: marriage.childrenIds,
-        isMarriage: true
-      }
-    }
-
-    const startX = genStartX.get(gen) ?? 400
-    // 关系节点的位置就是marriage slot的位置
-    const centerX = startX + marriageSlotIndex * nodeGap
-
-    return {
-      id: marriage.id,
-      x: centerX,
-      y: baseY,
-      marriageDate: marriage.marriageDate,
-      husbandId: marriage.husbandId,
-      wifeId: marriage.wifeId,
-      childrenIds: marriage.childrenIds,
-      isMarriage: true
-    }
-  })
-})
-
-/**
- * 计算所有连线
- * 包括：丈夫-婚姻、妻子-婚姻、婚姻-孩子
- */
-const allLinks = computed((): Link[] => {
-  const links: Link[] = []
-
-  // 遍历每个婚姻关系，生成相关连线
-  marriages.value.forEach((marriage) => {
-    // 找到丈夫、妻子、婚姻节点的位置
-    const husbandPos = personNodes.value.find(p => p.id === marriage.husbandId)
-    const wifePos = personNodes.value.find(p => p.id === marriage.wifeId)
-    const marriagePos = marriageNodes.value.find(m => m.id === marriage.id)
-
-    // 丈夫到婚姻的连线
-    if (husbandPos && marriagePos) {
+    // 生成夫妻-婚姻连线（实线）
+    if (husbandPos) {
       links.push({
         key: `h-${marriage.id}`,
-        x1: husbandPos.x,
-        y1: husbandPos.y,
-        x2: marriagePos.x,
-        y2: marriagePos.y,
+        x1: husbandPos.x, y1: husbandPos.y,
+        x2: marriagePos.x, y2: marriagePos.y,
         type: 'spouse'
       })
     }
-
-    // 婚姻到妻子的连线
-    if (wifePos && marriagePos) {
+    if (wifePos) {
       links.push({
         key: `w-${marriage.id}`,
-        x1: marriagePos.x,
-        y1: marriagePos.y,
-        x2: wifePos.x,
-        y2: wifePos.y,
+        x1: marriagePos.x, y1: marriagePos.y,
+        x2: wifePos.x, y2: wifePos.y,
         type: 'spouse'
       })
     }
 
-    // 婚姻到每个孩子的连线
-    if (marriage.childrenIds && marriagePos) {
-      marriage.childrenIds.forEach(childId => {
-        const childPos = personNodes.value.find(p => p.id === childId)
+    // 生成孩子节点和亲子连线
+    if (marriage.childrenIds?.length) {
+      const gen = marriage.generation ?? 0
+      const childGen = gen + 1  // 孩子在下一代
+      // 下一代的Y坐标（如果该代没有人，则动态计算）
+      const childBaseY = generationYMap.get(childGen) ?? (startY + (gen + 1) * rowHeight)
+
+      // 孩子在该代从婚姻节点下方开始横向排列
+      const childSpacing = 90    // 孩子间距
+      const totalWidth = (marriage.childrenIds.length - 1) * childSpacing
+      const childStartX = marriagePos.x + 40 - totalWidth / 2  // 居中对齐
+
+      marriage.childrenIds.forEach((childId, cIndex) => {
+        const child = getPersonById(childId)
+        if (child && !posMap.has(child.id)) {
+          // 该孩子还没被渲染过（避免重复）
+          const childX = childStartX + cIndex * childSpacing
+          posMap.set(child.id, { x: childX, y: childBaseY })
+          nodes.push({ id: child.id, x: childX, y: childBaseY, name: child.name, gender: child.gender })
+        }
+        const childPos = posMap.get(childId)
         if (childPos) {
+          // 生成婚姻-孩子连线（虚线）
           links.push({
             key: `c-${marriage.id}-${childId}`,
-            x1: marriagePos.x,
-            y1: marriagePos.y,
-            x2: childPos.x,
-            y2: childPos.y,
+            x1: marriagePos.x, y1: marriagePos.y,
+            x2: childPos.x, y2: childPos.y,
             type: 'child'
           })
         }
@@ -685,8 +497,13 @@ const allLinks = computed((): Link[] => {
     }
   })
 
-  return links
+  return { nodes, links }
 })
+
+// 导出单独的节点和连线（保持接口兼容）
+const personNodes = computed(() => graphData.value.nodes.filter(n => !n.isMarriage))
+const marriageNodes = computed(() => graphData.value.nodes.filter(n => n.isMarriage))
+const allLinks = computed(() => graphData.value.links)
 
 
 // ==================== 方法函数 ====================
